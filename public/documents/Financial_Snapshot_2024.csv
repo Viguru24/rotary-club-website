@@ -1,0 +1,13 @@
+Year,Period,Category,Amount,Type
+2024,Q1,Events,12500,Income
+2024,Q1,Donations,4500,Income
+2024,Q1,Operations,-3200,Expense
+2024,Q1,Marketing,-1500,Expense
+2024,Q2,Events,8900,Income
+2024,Q2,Grants,2000,Income
+2024,Q2,Venue Hire,-2800,Expense
+2024,Q3,Gala,15000,Income
+2024,Q3,Catering,-4500,Expense
+2024,Q4,Membership,3000,Income
+2024,Q4,Christmas Party,-2000,Expense
+2024,Total,,26900,Net Profit
