@@ -37,8 +37,7 @@ export const AuthProvider = ({ children }) => {
         if (password === import.meta.env.VITE_MEMBER_PASSWORD) {
             const memberUser = {
                 name: 'Administrator', // Changed name to reflect role
-                role: 'admin', // Grant admin permissions so they see Settings
-                picture: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff'
+                role: 'admin' // Grant admin permissions so they see Settings
             };
             setUser(memberUser);
             localStorage.setItem('user', JSON.stringify(memberUser));

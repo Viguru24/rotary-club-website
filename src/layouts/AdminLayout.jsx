@@ -2,16 +2,73 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+import { AdminThemeProvider, useAdminTheme } from '../context/AdminThemeContext';
+
 // Admin Layout Component
 // Admin Layout Component - Floating Glass Design
-const AdminLayout = () => {
+const AdminLayoutContent = () => {
     const { user, logout, loading } = useAuth();
+    const { currentTheme, changeTheme } = useAdminTheme();
+    const [themeMenuOpen, setThemeMenuOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Helper to exit admin panel (logout and go home)
+    const handleExit = (e) => {
+        if (e) e.preventDefault();
+        logout();
+        navigate('/');
+    };
+
+    // Default to expanded (false) for better visibility
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-    const [showNotifications, setShowNotifications] = useState(false);
+    const [hoverTimeout, setHoverTimeout] = useState(null);
+    const [leaveTimeout, setLeaveTimeout] = useState(null); // Add tracking for leave timeout
+    const [scrollY, setScrollY] = useState(0);
+    const contentRef = React.useRef(null);
+
+    const [expandedMenus, setExpandedMenus] = useState({});
+
+    // Parallax Scroll Listener
+    useEffect(() => {
+        const handleScroll = () => {
+            if (contentRef.current) {
+                setScrollY(contentRef.current.scrollTop);
+            }
+        };
+
+        const contentElement = contentRef.current;
+        if (contentElement) {
+            contentElement.addEventListener('scroll', handleScroll);
+        }
+
+        return () => {
+            if (contentElement) {
+                contentElement.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, []);
+
+    const toggleMenu = (path) => {
+        setExpandedMenus(prev => ({
+            ...prev,
+            [path]: !prev[path]
+        }));
+    };
+
+    // Auto-expand menu if current path matches a sub-item
+    useEffect(() => {
+        menuItems.forEach(item => {
+            if (item.subItems) {
+                const isSubItemActive = item.subItems.some(sub => location.pathname === sub.path);
+                if (isSubItemActive && !expandedMenus[item.path]) {
+                    setExpandedMenus(prev => ({ ...prev, [item.path]: true }));
+                }
+            }
+        });
+    }, [location.pathname]);
 
     // Handle Mobile Logic
     useEffect(() => {
@@ -54,11 +111,26 @@ const AdminLayout = () => {
 
     const allMenuItems = [
         { path: '/admin', icon: 'dashboard', label: 'Dashboard', access: 'all' },
-        { path: '/admin/blog', icon: 'article', label: 'Blog Posts', access: 'all' },
-        { path: '/admin/events', icon: 'calendar_month', label: 'Events', access: 'all' },
-        { path: '/admin/members', icon: 'group', label: 'Members', access: 'all' },
-        { path: '/admin/finance', icon: 'account_balance_wallet', label: 'Finance', access: 'admin' },
+        {
+            path: '/admin/events',
+            icon: 'celebration',
+            label: 'Events',
+            access: 'all',
+            subItems: [
+                { path: '/admin/events/bunny-run', label: '🐰 Bunny Fun Run' },
+                { path: '/admin/events/santa-tour', label: '🎅 Santa Tour' },
+                { path: '/santa-tracker', label: '🛷 Santa Tracker (Live)', external: true },
+                { path: '/admin/events/knights-garden', label: '🎄 Knights Garden' },
+                { path: '/admin/events/breakfast', label: '🥞 Breakfast' },
+                { path: '/admin/events/invoice', label: '🧾 General Invoice' },
+            ]
+        },
         { path: '/admin/documents', icon: 'folder_open', label: 'Files', access: 'admin' },
+        { path: '/admin/finance', icon: 'account_balance_wallet', label: 'Finance', access: 'admin' },
+        { path: '/admin/members', icon: 'group', label: 'Members', access: 'all' },
+        { path: '/admin/calendar', icon: 'calendar_month', label: 'Calendar', access: 'all' },
+        { path: '/admin/blog', icon: 'article', label: 'Blog Posts', access: 'all' },
+        { path: '/admin/home-settings', icon: 'home', label: 'Home Settings', access: 'admin' },
         { path: '/admin/site-settings', icon: 'settings', label: 'Settings', access: 'admin' },
         { path: '/admin/legals', icon: 'gavel', label: 'Legal', access: 'admin' },
     ];
@@ -71,12 +143,56 @@ const AdminLayout = () => {
     if (loading || !user) return null;
 
     return (
-        <div className="admin-container">
-            {/* Background Blobs (Optional - can be removed if mesh gradient is sufficient) */}
-            <div className="admin-bg-blobs">
-                <div className="blob" style={{ top: '-10%', left: '-10%', width: '50vw', height: '50vw', background: 'rgba(96, 165, 250, 0.1)' }}></div>
-                <div className="blob" style={{ bottom: '-10%', right: '-10%', width: '40vw', height: '40vw', background: 'rgba(192, 132, 252, 0.1)' }}></div>
-            </div>
+        <div className={`admin-container theme-${currentTheme}`}>
+            {/* Star Field Background with Parallax (Only for Glass Theme) */}
+            {currentTheme === 'glass' && (
+                <div className="star-field" style={{ transform: `translateY(-${scrollY * 0.2}px)` }}>
+                    {Array.from({ length: 50 }).map((_, i) => (
+                        <div
+                            key={i}
+                            className="star"
+                            style={{
+                                top: `${Math.random() * 100}%`,
+                                left: `${Math.random() * 100}%`,
+                                width: `${Math.random() * 3 + 1}px`,
+                                height: `${Math.random() * 3 + 1}px`,
+                                '--duration': `${Math.random() * 3 + 2}s`,
+                                '--delay': `${Math.random() * 2}s`
+                            }}
+                        />
+                    ))}
+
+                    {/* Constellation 1 (Big Dipper - Top Right) */}
+                    <svg className="constellation constellation-1 lazy-float" width="200" height="150" viewBox="0 0 200 150" style={{ top: '10%', right: '5%' }}>
+                        <path d="M10,80 L50,60 L90,70 L130,50 L160,30 L180,60 L140,90 Z" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+                        <circle cx="10" cy="80" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="50" cy="60" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="90" cy="70" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="130" cy="50" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="160" cy="30" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="180" cy="60" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="140" cy="90" r="2" fill="white" className="star opacity-80" />
+                    </svg>
+
+                    {/* Constellation 2 (Cassiopeia - Bottom Left) */}
+                    <svg className="constellation constellation-2 lazy-float-reverse" width="180" height="120" viewBox="0 0 180 120" style={{ bottom: '15%', left: '2%' }}>
+                        <path d="M10,30 L40,80 L80,50 L120,70 L160,40" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+                        <circle cx="10" cy="30" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="40" cy="80" r="1.5" fill="white" className="star opacity-80" />
+                        <circle cx="80" cy="50" r="2" fill="white" className="star opacity-80" />
+                        <circle cx="120" cy="70" r="1.5" fill="white" className="star opacity-80" />
+                        <circle cx="160" cy="40" r="1.5" fill="white" className="star opacity-80" />
+                    </svg>
+
+                    {/* Constellation 3 (Orion Belt - Top Left) */}
+                    <svg className="constellation constellation-3 lazy-float" width="120" height="100" viewBox="0 0 120 100" style={{ top: '15%', left: '15%' }}>
+                        <path d="M20,20 L50,50 L80,80" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                        <circle cx="20" cy="20" r="1.5" fill="white" className="star opacity-60" />
+                        <circle cx="50" cy="50" r="1.5" fill="white" className="star opacity-60" />
+                        <circle cx="80" cy="80" r="1.5" fill="white" className="star opacity-60" />
+                    </svg>
+                </div>
+            )}
 
             {/* Mobile Overlay */}
             {isMobile && mobileOpen && (
@@ -91,46 +207,48 @@ const AdminLayout = () => {
             )}
 
             {/* Sidebar Card */}
-            <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', height: '100%' }}>
+            <aside
+                className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}
+                style={{ height: isMobile ? '100dvh' : '100vh', paddingTop: '0.5rem', paddingBottom: '1rem' }}
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', height: '100%', overflow: 'hidden', position: 'relative', zIndex: 2 }}>
 
                     {/* Brand - Toggle Switch (Secondary) */}
-                    <div
-                        onClick={toggleSidebar}
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            cursor: 'pointer',
-                            userSelect: 'none',
-                            padding: '1rem 0.5rem 0 0.5rem',
-                            textAlign: 'center',
-                            width: '100%'
-                        }}
-                        title="Toggle Sidebar"
-                    >
-                        {/* Rotary Icon Removed */}
+                    {/* Brand & Toggle */}
+                    <Link to="/admin" style={{ padding: '0 0.5rem', marginBottom: '0.5rem', position: 'relative', minHeight: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
 
-                        <div className="admin-sidebar-text" style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            overflow: 'visible',
-                            whiteSpace: 'normal',
-                            width: '100%',
-                            marginTop: '0.25rem'
-                        }}>
-                            <h1 style={{ color: '#005baa', fontSize: '1.5rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' }}>Rotary</h1>
-                            <h2 style={{ color: '#f7a81b', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.2 }}>Dashboard</h2>
+                        {/* Collapse Button (Desktop) - REMOVED for automatic hover behavior */}
 
-                            {/* Welcome Message */}
-                            <div style={{ marginTop: '0.75rem', borderTop: '1px solid rgba(0,0,0,0.1)', paddingTop: '0.5rem', width: '90%' }}>
-                                <p style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 500 }}>Welcome,</p>
-                                <p style={{ color: '#0f172a', fontSize: '0.9rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.given_name || user?.name || 'Rotarian'}</p>
+                        {!collapsed && (
+                            <div className="admin-sidebar-text" style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                width: '100%',
+                                opacity: collapsed ? 0 : 1,
+                                transition: 'opacity 0.2s'
+                            }}>
+                                <h1 style={{ color: '#0f172a', fontSize: '1rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' }}>Rotary</h1>
+                                <p style={{ color: '#d97706', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Dashboard</p>
                             </div>
-                        </div>
-                    </div>
+                        )}
+
+                        {collapsed && (
+                            <div style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <span className="material-symbols-outlined" style={{
+                                    color: '#64748b',
+                                    fontSize: '1.5rem',
+                                    opacity: 1
+                                }}>dashboard</span>
+                            </div>
+                        )}
+                    </Link>
 
                     {/* Nav - Scrollable Area */}
                     <nav style={{
@@ -144,17 +262,74 @@ const AdminLayout = () => {
                         WebkitOverflowScrolling: 'touch',
                         scrollbarWidth: 'thin' // Firefox
                     }} className="sidebar-nav-scroll">
-                        {menuItems.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}
-                                title={collapsed ? item.label : ''}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: '1.25rem', flexShrink: 0 }}>{item.icon}</span>
-                                <span className="admin-sidebar-text">{item.label}</span>
-                            </Link>
-                        ))}
+                        {menuItems.map((item) => {
+                            const isActive = location.pathname === item.path;
+                            const isSubItemActive = item.subItems?.some(sub => location.pathname === sub.path);
+                            const isExpanded = expandedMenus[item.path];
+
+                            return (
+                                <div key={item.path}>
+                                    {item.subItems ? (
+                                        <>
+                                            <div
+                                                onClick={() => toggleMenu(item.path)}
+                                                className={`nav-link ${isSubItemActive ? 'active' : ''}`}
+                                                style={{ cursor: 'pointer', justifyContent: 'space-between' }}
+                                                title={collapsed ? item.label : ''}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '1.25rem', flexShrink: 0 }}>{item.icon}</span>
+                                                    <span className="admin-sidebar-text">{item.label}</span>
+                                                </div>
+                                                <span
+                                                    className="material-symbols-outlined admin-sidebar-text"
+                                                    style={{
+                                                        fontSize: '1.25rem',
+                                                        transition: 'transform 0.2s',
+                                                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+                                                    }}
+                                                >
+                                                    expand_more
+                                                </span>
+                                            </div>
+                                            {isExpanded && (
+                                                <div style={{
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '0.25rem',
+                                                    paddingLeft: '2.5rem',
+                                                    marginTop: '0.25rem',
+                                                    marginBottom: '0.25rem'
+                                                }}>
+                                                    {item.subItems.map((subItem) => (
+                                                        <Link
+                                                            key={subItem.path}
+                                                            to={subItem.path}
+                                                            className={`nav-link ${location.pathname === subItem.path ? 'active' : ''}`}
+                                                            style={{
+                                                                padding: '0.5rem 0.75rem',
+                                                                fontSize: '0.875rem'
+                                                            }}
+                                                        >
+                                                            <span className="admin-sidebar-text">{subItem.label}</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Link
+                                            to={item.path}
+                                            className={`nav-link ${isActive ? 'active' : ''}`}
+                                            title={collapsed ? item.label : ''}
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: '1.25rem', flexShrink: 0 }}>{item.icon}</span>
+                                            <span className="admin-sidebar-text">{item.label}</span>
+                                        </Link>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </nav>
 
                     {/* Bottom User Section */}
@@ -166,14 +341,18 @@ const AdminLayout = () => {
                             gap: '0.75rem',
                             justifyContent: (collapsed && !isMobile) ? 'center' : 'flex-start'
                         }}>
-                            <img
-                                src={user?.picture || 'https://ui-avatars.com/api/?name=Admin&background=random'}
-                                alt={user?.name || 'User'}
-                                style={{
-                                    width: '2.5rem', height: '2.5rem', borderRadius: '50%', boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                    objectFit: 'cover', flexShrink: 0
-                                }}
-                            />
+                            {user?.picture ? (
+                                <img
+                                    src={user.picture}
+                                    alt={user.name || 'User'}
+                                    style={{
+                                        width: '2.5rem', height: '2.5rem', borderRadius: '50%', boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                        objectFit: 'cover', flexShrink: 0
+                                    }}
+                                />
+                            ) : (
+                                <span className="material-symbols-outlined" style={{ fontSize: '2.5rem', color: '#cbd5e1' }}>account_circle</span>
+                            )}
                             <div className="admin-sidebar-text" style={{ display: 'flex', flexDirection: 'column', whiteSpace: 'nowrap' }}>
                                 <p style={{ color: '#0f172a', fontSize: '0.875rem', fontWeight: 600 }}>{user?.name || user?.given_name || 'User'}</p>
                                 <p style={{ color: '#64748b', fontSize: '0.75rem' }}>{isAdmin ? 'Admin' : 'Member'}</p>
@@ -181,8 +360,8 @@ const AdminLayout = () => {
 
                             <button
                                 className="admin-sidebar-text"
-                                onClick={() => { logout(); navigate('/login'); }}
-                                style={{ marginLeft: 'auto', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}
+                                onClick={() => { logout(); navigate('/'); }}
+                                style={{ marginLeft: 'auto', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}
                             >
                                 <span className="material-symbols-outlined">logout</span>
                             </button>
@@ -194,7 +373,7 @@ const AdminLayout = () => {
             {/* Main Content Card */}
             <main className="main-content">
                 <header className="top-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1rem', flex: 1, minWidth: 0 }}>
                         {/* Hamburger Menu Toggle */}
                         <button
                             onClick={toggleSidebar}
@@ -205,90 +384,114 @@ const AdminLayout = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#64748b',
-                                padding: '0.5rem',
+                                color: '#475569',
+                                padding: '0.4rem',
                                 borderRadius: '0.5rem',
-                                transition: 'background 0.2s'
+                                transition: 'background 0.2s',
+                                flexShrink: 0
                             }}
-                            className="hover:bg-slate-100"
+                            className="hover:bg-white/10"
                             title={isMobile ? "Open Menu" : (collapsed ? "Expand Sidebar" : "Collapse Sidebar")}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>menu</span>
                         </button>
-
-                        <div>
-                            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.025em', marginBottom: '0.25rem', lineHeight: 1.2 }}>{currentTitle}</h2>
-                            {/* Breadcrumbs or subtext could go here */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <h2 style={{
+                                fontSize: isMobile ? '1rem' : '1.25rem',
+                                fontWeight: 700,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }}>{currentTitle}</h2>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
-                        <div className="search-bar hidden md-flex" style={{ background: 'rgba(255,255,255,0.5)', padding: '0.5rem 1rem', borderRadius: '99px', border: '1px solid white' }}>
-                            <span className="material-symbols-outlined" style={{ color: '#94a3b8', fontSize: '20px' }}>search</span>
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                style={{ background: 'transparent', border: 'none', width: '150px', marginLeft: '0.5rem', outline: 'none', color: '#334155', fontSize: '0.875rem' }}
-                            />
-                        </div>
-
-                        {/* Notification Button */}
-                        <button
-                            onClick={() => setShowNotifications(!showNotifications)}
-                            style={{ width: '2.75rem', height: '2.75rem', borderRadius: '50%', background: 'white', border: '1px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', position: 'relative' }}
-                        >
-                            <span className="material-symbols-outlined">notifications</span>
-                            <span style={{ position: 'absolute', top: '0px', right: '0px', width: '12px', height: '12px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>
-                        </button>
-
-                        {/* Notifications Dropdown */}
-                        {showNotifications && (
-                            <>
-                                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowNotifications(false)}></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1rem', position: 'relative', flexShrink: 0 }}>
+                        {/* Theme Switcher */}
+                        <div className="profile-wrapper" style={{ marginRight: '0.2rem' }}>
+                            <div className="profile-btn" onClick={() => setThemeMenuOpen(!themeMenuOpen)} title="Change Theme">
                                 <div style={{
-                                    position: 'absolute', top: '120%', right: 0, width: '320px', background: 'white', borderRadius: '16px',
-                                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                                    border: '1px solid #e2e8f0', zIndex: 100, overflow: 'hidden'
+                                    width: '2rem', height: '2rem', borderRadius: '50%', background: 'white', border: '1px solid #e2e8f0',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                 }}>
-                                    <div style={{ padding: '16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Notifications</h3>
-                                        <span style={{ fontSize: '0.75rem', color: '#005baa', fontWeight: 600, cursor: 'pointer' }}>Mark all read</span>
-                                    </div>
-                                    <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
-                                        {[
-                                            { id: 1, title: 'New Member Signup', desc: 'John Doe applied for membership.', time: '2 mins ago', icon: 'person_add', color: '#3b82f6' },
-                                            { id: 2, title: 'Expense Approval', desc: 'Catering bill needs review.', time: '1 hour ago', icon: 'receipt_long', color: '#f59e0b' },
-                                            { id: 3, title: 'Event Reminder', desc: 'Weekly meeting starts in 2 hours.', time: '2 hours ago', icon: 'event', color: '#10b981' },
-                                            { id: 4, title: 'System Update', desc: 'Maintenance scheduled for tonight.', time: '5 hours ago', icon: 'settings', color: '#64748b' },
-                                            { id: 5, title: 'New Comment', desc: 'Sarah commented on the blog post.', time: '1 day ago', icon: 'chat_bubble', color: '#8b5cf6' },
-                                        ].map(n => (
-                                            <div key={n.id} style={{ padding: '12px 16px', display: 'flex', gap: '12px', borderBottom: '1px solid #f8fafc', alignItems: 'start', cursor: 'pointer' }} className="hover:bg-slate-50">
-                                                <div style={{ padding: '8px', borderRadius: '50%', background: `${n.color}15`, color: n.color, display: 'flex' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{n.icon}</span>
-                                                </div>
-                                                <div>
-                                                    <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155', margin: '0 0 2px 0' }}>{n.title}</p>
-                                                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0, lineHeight: 1.3 }}>{n.desc}</p>
-                                                    <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>{n.time}</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                                        <Link to="/admin" style={{ fontSize: '0.85rem', color: '#005baa', fontWeight: 600, textDecoration: 'none' }}>View All Activity</Link>
-                                    </div>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>palette</span>
                                 </div>
-                            </>
-                        )}
+                            </div>
+
+                            {/* Theme Dropdown */}
+                            {themeMenuOpen && (
+                                <div className="profile-dropdown" style={{
+                                    position: 'absolute', top: '100%', right: 0, marginTop: '0.5rem',
+                                    background: 'white', borderRadius: '0.75rem', padding: '0.5rem',
+                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', minWidth: '160px', zIndex: 100
+                                }}>
+                                    <div className="dropdown-header" style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+                                        Select Theme
+                                    </div>
+                                    <div className="dropdown-divider" style={{ height: '1px', background: '#f1f5f9', margin: '0.25rem 0' }}></div>
+                                    <button
+                                        onClick={() => { changeTheme('basic'); setThemeMenuOpen(false); }}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', width: '100%', padding: '0.5rem 0.75rem',
+                                            background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.875rem', textAlign: 'left', borderRadius: '0.5rem'
+                                        }}
+                                        className="hover:bg-slate-50"
+                                    >
+                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#cbd5e1', marginRight: 8 }}></div>
+                                        Basic
+                                    </button>
+                                    <button
+                                        onClick={() => { changeTheme('vibrant'); setThemeMenuOpen(false); }}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', width: '100%', padding: '0.5rem 0.75rem',
+                                            background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.875rem', textAlign: 'left', borderRadius: '0.5rem'
+                                        }}
+                                        className="hover:bg-slate-50"
+                                    >
+                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'linear-gradient(135deg, #4f46e5, #ec4899)', marginRight: 8 }}></div>
+                                        Vibrant
+                                    </button>
+                                    <button
+                                        onClick={() => { changeTheme('glass'); setThemeMenuOpen(false); }}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', width: '100%', padding: '0.5rem 0.75rem',
+                                            background: 'none', border: 'none', cursor: 'pointer', color: '#334155', fontSize: '0.875rem', textAlign: 'left', borderRadius: '0.5rem'
+                                        }}
+                                        className="hover:bg-slate-50"
+                                    >
+                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#0f172a', marginRight: 8 }}></div>
+                                        Glass (Default)
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <a
+                            href="/"
+                            onClick={handleExit}
+                            style={{
+                                width: '2rem', height: '2rem', borderRadius: '50%', background: 'white', border: '1px solid #e2e8f0',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', textDecoration: 'none',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)', flexShrink: 0, cursor: 'pointer'
+                            }}
+                            title="Logout and Exit to Public Site"
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>public</span>
+                        </a>
                     </div>
                 </header>
 
-                <div className="content-scroll">
+                <div className="content-scroll" ref={contentRef}>
                     <Outlet />
                 </div>
             </main>
         </div>
     );
 };
+
+const AdminLayout = () => (
+    <AdminThemeProvider>
+        <AdminLayoutContent />
+    </AdminThemeProvider>
+);
 
 export default AdminLayout;

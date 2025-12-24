@@ -37,7 +37,7 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="container section-padding" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="container section-padding" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '140px', paddingBottom: '40px' }}>
             <motion.div
                 className="glass-panel"
                 initial={{ opacity: 0, y: 20 }}

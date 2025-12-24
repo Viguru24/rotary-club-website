@@ -499,8 +499,8 @@ const AdminFinance = () => {
                     </div>
 
                     {/* List */}
-                    <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb', overflow: 'hidden' }} className="no-print">
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <div className="admin-table-container no-print" style={{ background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                             <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                                 <tr>
                                     <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '0.85rem', fontWeight: 600, color: '#6b7280' }}>

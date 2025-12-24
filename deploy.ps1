@@ -8,6 +8,9 @@ if (-not (Test-Path $envFile)) {
 }
 
 $envVars = @()
+$viteClientId = ""
+$viteMemberPassword = ""
+
 Get-Content $envFile | ForEach-Object {
     $line = $_.Trim()
     if ($line -and -not $line.StartsWith("#")) {
@@ -25,6 +28,14 @@ Get-Content $envFile | ForEach-Object {
                 $value = $value.Substring(1, $value.Length - 2)
             }
             
+            # Capture VITE variables separately for build args
+            if ($key -eq "VITE_GOOGLE_CLIENT_ID") {
+                $viteClientId = $value
+            }
+            elseif ($key -eq "VITE_MEMBER_PASSWORD") {
+                $viteMemberPassword = $value
+            }
+            
             $envVars += "$key=$value"
         }
     }
@@ -32,14 +43,18 @@ Get-Content $envFile | ForEach-Object {
 
 $envString = $envVars -join ","
 
-Write-Host "Deploying caterham-rotary to Google Cloud Run (us-central1)..."
+# Add NODE_ENV=production and VITE variables for Cloud Run
+$envString = "NODE_ENV=production,VITE_GOOGLE_CLIENT_ID=$viteClientId,VITE_MEMBER_PASSWORD=$viteMemberPassword,$envString"
+
+Write-Host "Deploying caterham-rotary to Google Cloud Run (europe-west2)..."
 # Using --source . performs a cloud build using the Dockerfile
 gcloud run deploy caterham-rotary `
-    --project micro-meadow-app `
+    --project caterham-rotary-web-2025 `
     --source . `
     --platform managed `
-    --region us-central1 `
+    --region europe-west2 `
     --allow-unauthenticated `
+    --quiet `
     --set-env-vars "$envString"
 
 Write-Host "Deployment initiated."

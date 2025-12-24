@@ -57,7 +57,14 @@ const AdminEvents = () => {
     };
 
     const handleSave = async (statusOverride) => {
-        if (!currentEvent.title || !currentEvent.date) return;
+        if (!currentEvent.title) {
+            showToast('Please enter an event title.', 'error');
+            return;
+        }
+        if (!currentEvent.date) {
+            showToast('Please select a date.', 'error');
+            return;
+        }
 
         const eventToSave = {
             ...currentEvent,
@@ -75,6 +82,17 @@ const AdminEvents = () => {
         fetchEvents();
         showToast(statusOverride === 'published' ? 'Event Published!' : 'Event submitted for review', 'success');
     };
+
+    // Close on Escape Key
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && isEditing) {
+                setIsEditing(false);
+            }
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isEditing]);
 
     const handleApprove = async (event) => {
         confirmAction(
@@ -308,12 +326,24 @@ const AdminEvents = () => {
             {/* Edit Modal (Simple overlay for now) */}
             <AnimatePresence>
                 {isEditing && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }} onClick={() => setIsEditing(false)}>
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '24px', padding: '30px', maxHeight: '90vh', overflowY: 'auto' }}
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                backdropFilter: 'blur(20px)',
+                                width: '100%',
+                                maxWidth: '650px',
+                                borderRadius: '24px',
+                                padding: '30px',
+                                maxHeight: '90vh',
+                                overflowY: 'auto',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5) inset',
+                                border: '1px solid rgba(255, 255, 255, 0.2)'
+                            }}
                         >
                             <h2 style={{ marginBottom: '20px' }}>{currentEvent.id ? 'Edit Event' : 'New Event'}</h2>
 

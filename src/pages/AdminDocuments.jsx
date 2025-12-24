@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getDocuments, saveDocument, deleteDocument, generateShareLink } from '../services/documentService';
-import { FaPlus, FaFilePdf, FaFileWord, FaFileImage, FaFileAlt, FaDownload, FaTrash, FaSearch, FaCloudUploadAlt, FaShareAlt, FaTag, FaHistory, FaExclamationTriangle, FaThLarge, FaList, FaTimes, FaWhatsapp, FaEnvelope, FaLink, FaMobileAlt } from 'react-icons/fa';
+import { FaPlus, FaFilePdf, FaFileWord, FaFileImage, FaFileAlt, FaDownload, FaTrash, FaSearch, FaCloudUploadAlt, FaShareAlt, FaTag, FaHistory, FaExclamationTriangle, FaThLarge, FaList, FaTimes, FaWhatsapp, FaEnvelope, FaLink, FaMobileAlt, FaFolder, FaFolderOpen, FaEye } from 'react-icons/fa';
 import { useUI } from '../context/UIContext';
 
 const AdminDocuments = () => {
     const { showToast, confirmAction } = useUI();
     const [docs, setDocs] = useState([]);
+    const [activeCategory, setActiveCategory] = useState('All');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [previewDoc, setPreviewDoc] = useState(null);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [selectedDocToShare, setSelectedDocToShare] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    const [viewMode, setViewMode] = useState('grid');
     const [newDoc, setNewDoc] = useState({ title: '', category: 'General', type: 'pdf' });
+    const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
         const fetchDocs = () => setDocs(getDocuments());
         fetchDocs();
-
-        // Listen for updates from service
         window.addEventListener('docs-updated', fetchDocs);
         return () => window.removeEventListener('docs-updated', fetchDocs);
     }, []);
@@ -60,28 +62,33 @@ const AdminDocuments = () => {
         setIsShareModalOpen(true);
     };
 
+    const openPreviewModal = (doc) => {
+        setPreviewDoc(doc);
+        setIsPreviewModalOpen(true);
+    };
+
+    // --- Sharing Logic ---
     const handleCopyLink = () => {
         if (!selectedDocToShare) return;
         const link = generateShareLink(selectedDocToShare.id);
         navigator.clipboard.writeText(link);
-        showToast('Link copied to clipboard!', 'success');
+        showToast('Link copied!', 'success');
         setIsShareModalOpen(false);
     };
 
     const handleWhatsAppShare = () => {
         if (!selectedDocToShare) return;
         const link = generateShareLink(selectedDocToShare.id);
-        const text = encodeURIComponent(`Check out this document: ${selectedDocToShare.title}`);
-        const url = encodeURIComponent(link);
-        window.open(`https://wa.me/?text=${text}%20${url}`, '_blank');
+        const text = encodeURIComponent(`Check out: ${selectedDocToShare.title}`);
+        window.open(`https://wa.me/?text=${text}%20${encodeURIComponent(link)}`, '_blank');
         setIsShareModalOpen(false);
     };
 
     const handleEmailShare = () => {
         if (!selectedDocToShare) return;
         const link = generateShareLink(selectedDocToShare.id);
-        const subject = encodeURIComponent(`Document Shared: ${selectedDocToShare.title}`);
-        const body = encodeURIComponent(`I'm sharing this document with you: ${selectedDocToShare.title}\n\nLink: ${link}`);
+        const subject = encodeURIComponent(`Shared: ${selectedDocToShare.title}`);
+        const body = encodeURIComponent(`I'm sharing this document: ${selectedDocToShare.title}\n\nLink: ${link}`);
         window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
         setIsShareModalOpen(false);
     };
@@ -91,17 +98,11 @@ const AdminDocuments = () => {
         const link = generateShareLink(selectedDocToShare.id);
         if (navigator.share) {
             try {
-                await navigator.share({
-                    title: selectedDocToShare.title,
-                    text: `Check out this document: ${selectedDocToShare.title}`,
-                    url: link,
-                });
+                await navigator.share({ title: selectedDocToShare.title, text: `Check out: ${selectedDocToShare.title}`, url: link });
                 showToast('Shared successfully', 'success');
-            } catch (error) {
-                console.log('Error sharing:', error);
-            }
+            } catch (error) { console.log('Error sharing:', error); }
         } else {
-            showToast('Native sharing not supported on this device', 'error');
+            showToast('Native sharing not supported', 'error');
         }
         setIsShareModalOpen(false);
     };
@@ -112,319 +113,248 @@ const AdminDocuments = () => {
         return days < 30 && days > 0;
     };
 
-    const filteredDocs = docs.filter(d => d.title.toLowerCase().includes(searchTerm.toLowerCase()));
+    // --- Smart Categories Logic ---
+    const categories = ['All', ...new Set(docs.map(d => d.category))];
+    const getCategoryCount = (cat) => cat === 'All' ? docs.length : docs.filter(d => d.category === cat).length;
+
+    const filteredDocs = docs.filter(d => {
+        const matchesSearch = d.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = activeCategory === 'All' || d.category === activeCategory;
+        return matchesSearch && matchesCategory;
+    });
+
+    // --- Global Drag & Drop Handlers ---
+    const handleGlobalDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleGlobalDragLeave = (e) => {
+        e.preventDefault();
+        // Simple check to prevent flicker when dragging over children
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        setIsDragging(false);
+    };
+
+    const handleGlobalDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) processFile(file);
+    };
+
+    const processFile = (file) => {
+        const name = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+        const ext = file.name.split('.').pop().toLowerCase();
+        let type = 'pdf';
+        if (['doc', 'docx'].includes(ext)) type = 'docx';
+        if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) type = 'jpg';
+        if (['csv', 'xls', 'xlsx'].includes(ext)) type = 'csv';
+
+        setNewDoc({ title: name, category: 'General', type: type });
+        setIsModalOpen(true);
+        showToast('File detected! Confirm details to save.', 'info');
+    };
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div
+            style={{ maxWidth: '100%', height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}
+            onDragOver={handleGlobalDragOver}
+            onDragLeave={handleGlobalDragLeave}
+            onDrop={handleGlobalDrop}
+        >
             {/* Header */}
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexShrink: 0 }}>
                 <div>
-                    <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>Smart Document Hub</h1>
-                    <p style={{ color: '#6b7280' }}>AI-powered storage with auto-tagging and expiry tracking.</p>
+                    <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>Smart Documents</h1>
+                    <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>AI-powered storage • {docs.length} files stored</p>
                 </div>
                 <button
-                    className="desktop-only-btn"
                     onClick={() => setIsModalOpen(true)}
                     style={{
-                        padding: '12px 25px', background: 'var(--accent-primary)', color: 'white',
-                        border: 'none', borderRadius: '12px', fontWeight: 600, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
+                        padding: '10px 20px', background: 'var(--accent-primary)', color: 'white',
+                        border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
                     }}
                 >
-                    <FaCloudUploadAlt size={18} /> Upload Document
+                    <FaCloudUploadAlt size={18} /> <span className="desktop-only">Upload</span>
                 </button>
             </div>
 
-            {/* Mobile Floating Action Button (FAB) */}
-            <button
-                className="mobile-fab"
-                onClick={() => setIsModalOpen(true)}
-                style={{
-                    position: 'fixed', bottom: '30px', right: '30px', width: '64px', height: '64px', borderRadius: '50%',
-                    background: 'var(--accent-primary)', color: 'white', border: 'none',
-                    boxShadow: '0 10px 25px -5px rgba(0, 91, 170, 0.5)', zIndex: 90,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
-                }}
-            >
-                <FaCloudUploadAlt size={24} />
-            </button>
+            {/* Main Content Area: Sidebar + Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 250px) 1fr', gap: '20px', flex: 1, overflow: 'hidden' }} className="responsive-grid">
 
-            <style>{`
-                @media (max-width: 768px) {
-                    .desktop-only-btn { display: none !important; }
-                }
-                @media (min-width: 769px) {
-                    .mobile-fab { display: none !important; }
-                }
-            `}</style>
-
-            {/* Controls Bar */}
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap' }}>
-                {/* Search */}
-                <div style={{ flex: 1, background: 'white', padding: '12px 20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #e5e7eb', minWidth: '250px' }}>
-                    <FaSearch color="#9ca3af" />
-                    <input
-                        type="text"
-                        placeholder="Search by title, tag, or content..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.95rem' }}
-                    />
-                    {searchTerm && (
-                        <button
-                            onClick={() => setSearchTerm('')}
+                {/* 1. Smart Sidebar */}
+                <aside style={{ background: 'white', borderRadius: '16px', padding: '16px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }} className="doc-sidebar">
+                    <h3 style={{ fontSize: '0.8rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '8px' }}>Folders</h3>
+                    {categories.map(cat => (
+                        <div
+                            key={cat}
+                            onClick={() => setActiveCategory(cat)}
                             style={{
-                                background: '#f3f4f6',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: '#6b7280',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                background: activeCategory === cat ? '#eff6ff' : 'transparent',
+                                color: activeCategory === cat ? 'var(--accent-primary)' : '#4b5563',
+                                fontWeight: activeCategory === cat ? 600 : 500,
                                 transition: 'background 0.2s'
                             }}
-                            title="Clear Search"
                         >
-                            <FaTimes size={12} />
-                        </button>
-                    )}
-                </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {activeCategory === cat ? <FaFolderOpen /> : <FaFolder />}
+                                {cat}
+                            </div>
+                            <span style={{ fontSize: '0.75rem', background: activeCategory === cat ? 'white' : '#f3f4f6', padding: '2px 6px', borderRadius: '99px', minWidth: '20px', textAlign: 'center' }}>
+                                {getCategoryCount(cat)}
+                            </span>
+                        </div>
+                    ))}
 
-                {/* View Toggles */}
-                <div style={{ background: 'white', padding: '6px', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', gap: '5px' }}>
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        style={{
-                            padding: '10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                            background: viewMode === 'grid' ? '#eff6ff' : 'transparent',
-                            color: viewMode === 'grid' ? 'var(--accent-primary)' : '#6b7280'
-                        }}
-                        title="Grid View"
-                    >
-                        <FaThLarge size={18} />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('list')}
-                        style={{
-                            padding: '10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                            background: viewMode === 'list' ? '#eff6ff' : 'transparent',
-                            color: viewMode === 'list' ? 'var(--accent-primary)' : '#6b7280'
-                        }}
-                        title="List View"
-                    >
-                        <FaList size={18} />
-                    </button>
+                    <div style={{ marginTop: 'auto', background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Storage Status</p>
+                        <div style={{ height: '6px', width: '100%', background: '#e2e8f0', borderRadius: '99px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: '45%', background: 'var(--accent-primary)' }}></div>
+                        </div>
+                        <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>4.2 GB of 10 GB used</p>
+                    </div>
+                </aside>
+
+                {/* Right Content */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', overflow: 'hidden' }}>
+
+                    {/* Search & Toggle Bar */}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ flex: 1, background: 'white', padding: '8px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #e5e7eb' }}>
+                            <FaSearch color="#9ca3af" />
+                            <input
+                                type="text"
+                                placeholder={`Search in ${activeCategory}...`}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                            />
+                        </div>
+                        <div style={{ background: 'white', padding: '4px', borderRadius: '10px', border: '1px solid #e5e7eb', display: 'flex', gap: '2px' }}>
+                            <button onClick={() => setViewMode('grid')} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: viewMode === 'grid' ? '#eff6ff' : 'transparent', color: viewMode === 'grid' ? 'var(--accent-primary)' : '#6b7280' }}><FaThLarge size={16} /></button>
+                            <button onClick={() => setViewMode('list')} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: viewMode === 'list' ? '#eff6ff' : 'transparent', color: viewMode === 'list' ? 'var(--accent-primary)' : '#6b7280' }}><FaList size={16} /></button>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Grid/List */}
+                    <div style={{ overflowY: 'auto', overflowX: 'hidden', paddingBottom: '20px', flex: 1, paddingRight: '4px' }} className="custom-scrollbar">
+                        {filteredDocs.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                                <FaFolderOpen size={48} style={{ opacity: 0.2, marginBottom: '10px' }} />
+                                <p>No documents found in this folder.</p>
+                            </div>
+                        ) : viewMode === 'grid' ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '15px' }}>
+                                {filteredDocs.map((doc, index) => (
+                                    <motion.div
+                                        key={doc.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        layout
+                                        style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}
+                                        className="hover:shadow-md transition-shadow"
+                                    >
+                                        {isExpiringSoon(doc.expiryDate) && (
+                                            <div style={{ position: 'absolute', top: 0, right: 0, background: '#fee2e2', color: '#ef4444', fontSize: '0.65rem', fontWeight: 700, padding: '2px 8px', borderBottomLeftRadius: '8px' }}>EXPIRING</div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '10px', fontSize: '1.5rem' }}>{getFileIcon(doc.type)}</div>
+                                            <button onClick={() => openPreviewModal(doc)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }} title="Quick Preview"><FaEye /></button>
+                                        </div>
+                                        <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1f2937', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={doc.title}>{doc.title}</h3>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#6b7280', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                                            <span>{doc.size}</span>
+                                            <span>{doc.date}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                            <button onClick={() => openShareModal(doc)} style={{ flex: 1, padding: '6px', fontSize: '0.75rem', border: '1px solid #dbeafe', borderRadius: '6px', background: '#eff6ff', color: '#3b82f6', cursor: 'pointer' }}>Share</button>
+                                            <button onClick={() => handleDelete(doc.id)} style={{ padding: '6px 8px', border: 'none', borderRadius: '6px', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}><FaTrash size={12} /></button>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: '12px', overflow: 'hidden' }}>
+                                <thead style={{ background: '#f9fafb', fontSize: '0.8rem', color: '#6b7280', textAlign: 'left' }}>
+                                    <tr>
+                                        <th style={{ padding: '12px' }}>Name</th>
+                                        <th style={{ padding: '12px' }}>Type</th>
+                                        <th style={{ padding: '12px' }}>Size</th>
+                                        <th style={{ padding: '12px', textAlign: 'right' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredDocs.map(doc => (
+                                        <tr key={doc.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 500, fontSize: '0.9rem' }}>
+                                                {getFileIcon(doc.type)} {doc.title}
+                                            </td>
+                                            <td style={{ padding: '12px', fontSize: '0.85rem', color: '#64748b' }}>{doc.category}</td>
+                                            <td style={{ padding: '12px', fontSize: '0.85rem', color: '#64748b' }}>{doc.size}</td>
+                                            <td style={{ padding: '12px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                <button onClick={() => openPreviewModal(doc)} style={{ padding: '6px', border: 'none', cursor: 'pointer', color: '#64748b' }}><FaEye /></button>
+                                                <button onClick={() => openShareModal(doc)} style={{ padding: '6px', border: 'none', cursor: 'pointer', color: '#3b82f6' }}><FaShareAlt /></button>
+                                                <button onClick={() => handleDelete(doc.id)} style={{ padding: '6px', border: 'none', cursor: 'pointer', color: '#ef4444' }}><FaTrash /></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Documents - Grid View */}
-            {viewMode === 'grid' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                    {filteredDocs.map((doc, index) => (
-                        <motion.div
-                            key={doc.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.05 }}
-                            style={{ background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb', padding: '20px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', position: 'relative', overflow: 'hidden' }}
-                        >
-                            {/* Smart Badge: Expiry */}
-                            {isExpiringSoon(doc.expiryDate) && (
-                                <div style={{ position: 'absolute', top: 0, right: 0, background: '#fef2f2', color: '#ef4444', fontSize: '0.7rem', fontWeight: 700, padding: '4px 10px', borderBottomLeftRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <FaExclamationTriangle /> EXPIRES SOON
-                                </div>
-                            )}
-
-                            <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: '15px' }}>
-                                <div style={{ padding: '12px', background: '#f3f4f6', borderRadius: '12px', fontSize: '1.5rem', position: 'relative' }}>
-                                    {getFileIcon(doc.type)}
-                                    <div style={{ position: 'absolute', bottom: '-5px', right: '-5px', background: 'white', border: '1px solid #e5e7eb', fontSize: '0.6rem', padding: '2px 4px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
-                                        <FaHistory size={8} /> v{doc.version || 1}
-                                    </div>
-                                </div>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 600, background: '#f0f9ff', color: '#0369a1', padding: '4px 8px', borderRadius: '6px' }}>{doc.category?.toUpperCase() || 'DOC'}</span>
-                            </div>
-
-                            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#1f2937', marginBottom: '8px', flex: 1 }}>{doc.title}</h3>
-
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '15px' }}>
-                                {doc.tags?.length > 0 ? doc.tags.map(tag => (
-                                    <span key={tag} style={{ fontSize: '0.7rem', background: '#f9fafb', border: '1px solid #e5e7eb', padding: '2px 6px', borderRadius: '4px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                        <FaTag size={8} /> {tag}
-                                    </span>
-                                )) : <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic' }}>AI analyzing content...</span>}
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#6b7280', marginBottom: '20px', borderTop: '1px solid #f3f4f6', paddingTop: '10px' }}>
-                                <span>{doc.date}</span>
-                                <span>{doc.size}</span>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
-                                <button onClick={() => openShareModal(doc)} style={{ padding: '8px 12px', border: '1px solid #dbeafe', borderRadius: '8px', background: doc.shared ? '#eff6ff' : 'white', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 500, flex: 1 }}>
-                                    <FaShareAlt size={14} /> {doc.shared ? 'Shared' : 'Share'}
-                                </button>
-                                <a href={doc.url} download target="_blank" rel="noopener noreferrer" style={{ padding: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', background: 'white', color: '#4b5563', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <FaDownload size={14} />
-                                </a>
-                                <button onClick={() => handleDelete(doc.id)} style={{ padding: '8px 12px', border: '1px solid #fee2e2', borderRadius: '8px', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }}>
-                                    <FaTrash size={14} />
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            )}
-
-            {/* Documents - List View */}
-            {viewMode === 'list' && (
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e5e7eb', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontSize: '0.85rem', color: '#6b7280', textTransform: 'uppercase' }}>
-                            <tr>
-                                <th style={{ padding: '16px' }}>Name</th>
-                                <th style={{ padding: '16px' }}>Category</th>
-                                <th style={{ padding: '16px' }}>Size</th>
-                                <th style={{ padding: '16px' }}>Modified</th>
-                                <th style={{ padding: '16px', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredDocs.map((doc, index) => (
-                                <motion.tr
-                                    key={doc.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: index * 0.03 }}
-                                    style={{ borderBottom: '1px solid #f3f4f6' }}
-                                >
-                                    <td style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        <div style={{ fontSize: '1.2rem' }}>{getFileIcon(doc.type)}</div>
-                                        <div>
-                                            <div style={{ fontWeight: 600, color: '#1f2937' }}>{doc.title}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>v{doc.version || 1} • {doc.tags?.join(', ')}</div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, background: '#f0f9ff', color: '#0369a1', padding: '4px 8px', borderRadius: '6px' }}>{doc.category}</span>
-                                    </td>
-                                    <td style={{ padding: '16px', color: '#6b7280', fontSize: '0.9rem' }}>{doc.size}</td>
-                                    <td style={{ padding: '16px', color: '#6b7280', fontSize: '0.9rem' }}>
-                                        {doc.date}
-                                        {isExpiringSoon(doc.expiryDate) && <span style={{ display: 'block', fontSize: '0.7rem', color: '#ef4444', fontWeight: 'bold' }}>Expiring Soon</span>}
-                                    </td>
-                                    <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                            <button onClick={() => openShareModal(doc)} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #dbeafe', background: doc.shared ? '#eff6ff' : 'white', color: '#3b82f6', cursor: 'pointer' }} title="Share">
-                                                <FaShareAlt />
-                                            </button>
-                                            <a href={doc.url} download target="_blank" rel="noopener noreferrer" style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', background: 'white', color: '#4b5563', cursor: 'pointer' }} title="Download">
-                                                <FaDownload />
-                                            </a>
-                                            <button onClick={() => handleDelete(doc.id)} style={{ padding: '8px', borderRadius: '8px', border: '1px solid #fee2e2', background: '#fef2f2', color: '#ef4444', cursor: 'pointer' }} title="Delete">
-                                                <FaTrash />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {filteredDocs.length === 0 && (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>No documents found matching your search.</div>
-                    )}
-                </div>
-            )}
-
-            {/* Upload Modal */}
+            {/* 2. Global Drag & Drop Overlay */}
             <AnimatePresence>
-                {isModalOpen && (
+                {isDragging && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 150 }}
+                        style={{ position: 'absolute', inset: 0, background: 'rgba(59, 130, 246, 0.9)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white' }}
+                    >
+                        <FaCloudUploadAlt size={64} style={{ marginBottom: '20px' }} />
+                        <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Drop to Upload</h2>
+                        <p>Release anywhere to add to {activeCategory}</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 3. Quick Preview Modal */}
+            <AnimatePresence>
+                {isPreviewModalOpen && previewDoc && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setIsPreviewModalOpen(false)}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 170 }}
                     >
                         <motion.div
                             initial={{ scale: 0.95 }} animate={{ scale: 1 }}
-                            style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '500px', overflow: 'hidden' }}
+                            onClick={e => e.stopPropagation()}
+                            style={{ background: 'white', borderRadius: '16px', width: '90%', maxWidth: '800px', height: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
                         >
-                            <div style={{ padding: '24px', borderBottom: '1px solid #e5e7eb' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Upload New Document</h2>
+                            <div style={{ padding: '16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>{getFileIcon(previewDoc.type)} {previewDoc.title}</h3>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <a href={previewDoc.url} download className="btn-primary" style={{ padding: '8px 16px', borderRadius: '8px', background: '#3b82f6', color: 'white', textDecoration: 'none', fontSize: '0.9rem' }}>Download</a>
+                                    <button onClick={() => setIsPreviewModalOpen(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem', color: '#64748b' }}><FaTimes /></button>
+                                </div>
                             </div>
-                            <form onSubmit={handleSave} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-                                {/* Drag & Drop Zone */}
-                                <div
-                                    onClick={() => document.getElementById('file-upload-input').click()}
-                                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = '#eff6ff'; }}
-                                    onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.background = '#f9fafb'; }}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        e.currentTarget.style.borderColor = '#d1d5db';
-                                        e.currentTarget.style.background = '#f9fafb';
-                                        const file = e.dataTransfer.files[0];
-                                        if (file) {
-                                            const name = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                                            const ext = file.name.split('.').pop().toLowerCase();
-                                            let type = 'pdf';
-                                            if (['doc', 'docx'].includes(ext)) type = 'docx';
-                                            if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) type = 'jpg';
-                                            if (['csv', 'xls', 'xlsx'].includes(ext)) type = 'csv';
-
-                                            setNewDoc({ ...newDoc, title: name, type: type });
-                                            showToast('File info auto-detected!', 'success');
-                                        }
-                                    }}
-                                    style={{ border: '2px dashed #d1d5db', padding: '30px', borderRadius: '12px', textAlign: 'center', cursor: 'pointer', background: '#f9fafb', transition: 'all 0.2s' }}
-                                >
-                                    <input
-                                        type="file"
-                                        id="file-upload-input"
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                const name = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                                                const ext = file.name.split('.').pop().toLowerCase();
-                                                let type = 'pdf';
-                                                if (['doc', 'docx'].includes(ext)) type = 'docx';
-                                                if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) type = 'jpg';
-                                                if (['csv', 'xls', 'xlsx'].includes(ext)) type = 'csv';
-
-                                                setNewDoc({ ...newDoc, title: name, type: type });
-                                                showToast('File info auto-detected!', 'success');
-                                            }
-                                        }}
-                                    />
-                                    <FaCloudUploadAlt size={32} color="#9ca3af" />
-                                    <p style={{ marginTop: '10px', color: '#6b7280', fontSize: '0.9rem' }}>Click or Drag file to upload</p>
-                                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px' }}>Supports PDF, Word, Images, CSV</p>
-                                </div>
-
-                                <div style={{ height: '1px', background: '#e5e7eb', margin: '5px 0' }}></div>
-
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, marginBottom: '6px', color: '#374151' }}>Document Title</label>
-                                    <input type="text" required value={newDoc.title} onChange={e => setNewDoc({ ...newDoc, title: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} placeholder="e.g., AGM Minutes" />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, marginBottom: '6px', color: '#374151' }}>File Type</label>
-                                    <select value={newDoc.type} onChange={e => setNewDoc({ ...newDoc, type: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }}>
-                                        <option value="pdf">PDF Document</option>
-                                        <option value="docx">Word Document</option>
-                                        <option value="jpg">Image (JPG/PNG)</option>
-                                        <option value="csv">Data File (CSV)</option>
-                                    </select>
-                                </div>
-
-                                <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-                                    <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer' }}>Cancel</button>
-                                    <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'var(--accent-primary)', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Save Document</button>
-                                </div>
-                            </form>
+                            <div style={{ flex: 1, background: '#f8fafc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {/* Mock Preview Logic */}
+                                {previewDoc.type === 'pdf' ? (
+                                    <iframe src={previewDoc.url} style={{ width: '100%', height: '100%', border: 'none' }} title="PDF Preview"></iframe>
+                                ) : ['jpg', 'png', 'jpeg'].includes(previewDoc.type) ? (
+                                    <img src={previewDoc.url} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                ) : (
+                                    <div style={{ textAlign: 'center', color: '#64748b' }}>
+                                        <FaFileAlt size={64} />
+                                        <p style={{ marginTop: '16px' }}>Preview not available for this file type.</p>
+                                    </div>
+                                )}
+                            </div>
                         </motion.div>
                     </motion.div>
                 )}
@@ -460,34 +390,46 @@ const AdminDocuments = () => {
                                     <FaWhatsapp size={24} color="#16a34a" />
                                     <span style={{ fontWeight: 600, color: '#166534' }}>WhatsApp</span>
                                 </button>
-                                <button onClick={handleEmailShare} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', gap: '10px' }}>
-                                    <FaEnvelope size={24} color="#3b82f6" />
-                                    <span style={{ fontWeight: 600, color: '#1e40af' }}>Email</span>
-                                </button>
-                                <button onClick={handleNativeShare} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', gap: '10px' }}>
-                                    <FaMobileAlt size={24} color="#f97316" />
-                                    <span style={{ fontWeight: 600, color: '#9a3412' }}>More</span>
-                                </button>
                             </div>
 
-                            <button
-                                onClick={() => setIsShareModalOpen(false)}
-                                style={{ marginTop: '25px', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontWeight: 500 }}
-                            >
-                                Cancel
-                            </button>
+                            <button onClick={() => setIsShareModalOpen(false)} style={{ marginTop: '25px', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
+            {/* Upload Modal (Reused) */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 150 }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95 }} animate={{ scale: 1 }}
+                            style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '500px', overflow: 'hidden', padding: '24px' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '20px' }}>Save Document</h2>
+                            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 500, marginBottom: '6px', color: '#374151' }}>Title</label>
+                                    <input type="text" required value={newDoc.title} onChange={e => setNewDoc({ ...newDoc, title: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer' }}>Cancel</button>
+                                    <button type="submit" style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'var(--accent-primary)', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Styles for responsiveness */}
             <style>{`
-                button:hover {
-                    opacity: 0.9;
-                    transform: translateY(-1px);
-                }
-                button:active {
-                    transform: translateY(0);
+                @media (max-width: 1000px) {
+                    .responsive-grid { grid-template-columns: 1fr !important; }
+                    .doc-sidebar { display: none !important; }
+                    .desktop-only { display: none; }
                 }
             `}</style>
         </div>

@@ -1,0 +1,48 @@
+/* Blog Editor Overrides */
+
+/* Override default Quill container to work with flexbox/grid */
+.blog-editor-override {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+}
+
+.blog-editor-override .ql-toolbar {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-color: #e2e8f0 !important;
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.blog-editor-override .ql-container {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-color: #e2e8f0 !important;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.05rem;
+    flex: 1;
+    overflow-y: auto;
+    /* Allow internal scrolling if needed */
+}
+
+/* Hide scrollbar for cleaner look if parent handles it, 
+   but in Snow theme we often want the container to grow 
+   or have its own scroll. */
+
+.blog-editor-override .ql-editor {
+    min-height: 300px;
+    font-family: 'Inter', sans-serif;
+    color: #1e293b;
+    line-height: 1.8;
+}
+
+/* Placeholder styling */
+.blog-editor-override .ql-editor.ql-blank::before {
+    color: #94a3b8;
+    font-style: normal;
+    font-weight: 400;
+}

@@ -217,6 +217,272 @@ app.delete('/api/income/:id', asyncHandler(async (req, res) => {
     res.json({ message: "deleted", changes });
 }));
 
+// --- BUNNY RUN API ---
+
+// Registrations
+app.get('/api/bunny-run/registrations', asyncHandler(async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM bunny_run_registrations ORDER BY created_at DESC");
+    res.json(rows);
+}));
+
+app.post('/api/bunny-run/registrations', asyncHandler(async (req, res) => {
+    const { name, email, phone, event_type, age, postcode, consent_fitness, consent_photos } = req.body;
+    const sql = "INSERT INTO bunny_run_registrations (name, email, phone, event_type, age, postcode, consent_fitness, consent_photos) VALUES (?,?,?,?,?,?,?,?)";
+    const params = [name, email, phone || null, event_type, age || null, postcode || null, consent_fitness ? 1 : 0, consent_photos ? 1 : 0];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.delete('/api/bunny-run/registrations/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM bunny_run_registrations WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
+// Santa Bookings
+app.get('/api/bunny-run/santa-bookings', asyncHandler(async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM bunny_run_santa_bookings ORDER BY created_at DESC");
+    res.json(rows);
+}));
+
+app.post('/api/bunny-run/santa-bookings', asyncHandler(async (req, res) => {
+    const { parent_name, email, phone, child_name, child_age, time_slot, special_requests } = req.body;
+    const sql = "INSERT INTO bunny_run_santa_bookings (parent_name, email, phone, child_name, child_age, time_slot, special_requests) VALUES (?,?,?,?,?,?,?)";
+    const params = [parent_name, email, phone || null, child_name, child_age || null, time_slot || null, special_requests || null];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.put('/api/bunny-run/santa-bookings/:id', asyncHandler(async (req, res) => {
+    const { parent_name, email, phone, child_name, child_age, time_slot, special_requests } = req.body;
+    const sql = "UPDATE bunny_run_santa_bookings SET parent_name=?, email=?, phone=?, child_name=?, child_age=?, time_slot=?, special_requests=? WHERE id=?";
+    const params = [parent_name, email, phone || null, child_name, child_age || null, time_slot || null, special_requests || null, req.params.id];
+    const { changes } = await db.query(sql, params);
+    res.json({ message: "success", changes });
+}));
+
+app.delete('/api/bunny-run/santa-bookings/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM bunny_run_santa_bookings WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
+// Breakfast Bookings
+app.get('/api/bunny-run/breakfast-bookings', asyncHandler(async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM bunny_run_breakfast_bookings ORDER BY created_at DESC");
+    res.json(rows);
+}));
+
+app.post('/api/bunny-run/breakfast-bookings', asyncHandler(async (req, res) => {
+    const { name, email, phone, num_adults, num_children, dietary_requirements } = req.body;
+    const sql = "INSERT INTO bunny_run_breakfast_bookings (name, email, phone, num_adults, num_children, dietary_requirements) VALUES (?,?,?,?,?,?)";
+    const params = [name, email, phone || null, num_adults || 0, num_children || 0, dietary_requirements || null];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.put('/api/bunny-run/breakfast-bookings/:id', asyncHandler(async (req, res) => {
+    const { name, email, phone, num_adults, num_children, dietary_requirements } = req.body;
+    const sql = "UPDATE bunny_run_breakfast_bookings SET name=?, email=?, phone=?, num_adults=?, num_children=?, dietary_requirements=? WHERE id=?";
+    const params = [name, email, phone || null, num_adults || 0, num_children || 0, dietary_requirements || null, req.params.id];
+    const { changes } = await db.query(sql, params);
+    res.json({ message: "success", changes });
+}));
+
+app.delete('/api/bunny-run/breakfast-bookings/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM bunny_run_breakfast_bookings WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
+// Invoices
+app.get('/api/bunny-run/invoices', asyncHandler(async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM bunny_run_invoices ORDER BY created_at DESC");
+    res.json(rows);
+}));
+
+app.post('/api/bunny-run/invoices', asyncHandler(async (req, res) => {
+    const { invoice_number, company_name, contact_name, email, phone, amount, items, description, status, due_date } = req.body;
+    const sql = "INSERT INTO bunny_run_invoices (invoice_number, company_name, contact_name, email, phone, amount, items, description, status, due_date) VALUES (?,?,?,?,?,?,?,?,?,?)";
+    const params = [invoice_number, company_name, contact_name || null, email || null, phone || null, amount, items || null, description || null, status || 'pending', due_date || null];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.put('/api/bunny-run/invoices/:id', asyncHandler(async (req, res) => {
+    const { invoice_number, company_name, contact_name, email, phone, amount, items, description, status, due_date } = req.body;
+    const sql = "UPDATE bunny_run_invoices SET invoice_number=?, company_name=?, contact_name=?, email=?, phone=?, amount=?, items=?, description=?, status=?, due_date=? WHERE id=?";
+    const params = [invoice_number, company_name, contact_name || null, email || null, phone || null, amount, items || null, description || null, status || 'pending', due_date || null, req.params.id];
+    const { changes } = await db.query(sql, params);
+    res.json({ message: "success", changes });
+}));
+
+app.delete('/api/bunny-run/invoices/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM bunny_run_invoices WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
+// Export endpoint for Bunny Run data
+app.get('/api/bunny-run/export', asyncHandler(async (req, res) => {
+    const { type } = req.query; // 'registrations', 'santa', 'breakfast', 'invoices', or 'all'
+
+    // For now, return JSON. You can add Excel export later with a library like 'exceljs'
+    const data = {};
+
+    if (!type || type === 'all' || type === 'registrations') {
+        const { rows: registrations } = await db.query("SELECT * FROM bunny_run_registrations ORDER BY created_at DESC");
+        data.registrations = registrations;
+    }
+
+    if (!type || type === 'all' || type === 'santa') {
+        const { rows: santa } = await db.query("SELECT * FROM bunny_run_santa_bookings ORDER BY created_at DESC");
+        data.santa_bookings = santa;
+    }
+
+    if (!type || type === 'all' || type === 'breakfast') {
+        const { rows: breakfast } = await db.query("SELECT * FROM bunny_run_breakfast_bookings ORDER BY created_at DESC");
+        data.breakfast_bookings = breakfast;
+    }
+
+    if (!type || type === 'all' || type === 'invoices') {
+        const { rows: invoices } = await db.query("SELECT * FROM bunny_run_invoices ORDER BY created_at DESC");
+        data.invoices = invoices;
+    }
+
+    res.json(data);
+}));
+
+// --- SANTA TOUR API ---
+
+// Routes
+app.get('/api/santa-tour/routes', asyncHandler(async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM santa_tour_routes ORDER BY name ASC");
+    res.json(rows);
+}));
+
+app.post('/api/santa-tour/routes', asyncHandler(async (req, res) => {
+    const { name, area, duration, stops_count, notes, map_data } = req.body;
+    const sql = "INSERT INTO santa_tour_routes (name, area, duration, stops_count, notes, map_data) VALUES (?,?,?,?,?,?)";
+    const params = [name, area, duration || null, stops_count || 0, notes || null, map_data || null];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.put('/api/santa-tour/routes/:id', asyncHandler(async (req, res) => {
+    const { name, area, duration, stops_count, notes, map_data } = req.body;
+    const sql = "UPDATE santa_tour_routes SET name=?, area=?, duration=?, stops_count=?, notes=?, map_data=? WHERE id=?";
+    const params = [name, area, duration || null, stops_count || 0, notes || null, map_data || null, req.params.id];
+    const { changes } = await db.query(sql, params);
+    res.json({ message: "success", changes });
+}));
+
+app.delete('/api/santa-tour/routes/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM santa_tour_routes WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
+// Schedules
+app.get('/api/santa-tour/schedules', asyncHandler(async (req, res) => {
+    const { rows } = await db.query("SELECT * FROM santa_tour_schedules ORDER BY date ASC, night_number ASC");
+    res.json(rows);
+}));
+
+app.post('/api/santa-tour/schedules', asyncHandler(async (req, res) => {
+    const { night_number, date, route_id, santa_member, driver_member, helper1_member, helper2_member, start_time, notes } = req.body;
+    const sql = "INSERT INTO santa_tour_schedules (night_number, date, route_id, santa_member, driver_member, helper1_member, helper2_member, start_time, notes) VALUES (?,?,?,?,?,?,?,?,?)";
+    const params = [
+        night_number,
+        date,
+        route_id || null,
+        santa_member || null,
+        driver_member || null,
+        helper1_member || null,
+        helper2_member || null,
+        start_time || '18:00',
+        notes || null
+    ];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.put('/api/santa-tour/schedules/:id', asyncHandler(async (req, res) => {
+    const { night_number, date, route_id, santa_member, driver_member, helper1_member, helper2_member, start_time, notes } = req.body;
+    const sql = "UPDATE santa_tour_schedules SET night_number=?, date=?, route_id=?, santa_member=?, driver_member=?, helper1_member=?, helper2_member=?, start_time=?, notes=? WHERE id=?";
+    const params = [
+        night_number,
+        date,
+        route_id || null,
+        santa_member || null,
+        driver_member || null,
+        helper1_member || null,
+        helper2_member || null,
+        start_time || '18:00',
+        notes || null,
+        req.params.id
+    ];
+    const { changes } = await db.query(sql, params);
+    res.json({ message: "success", changes });
+}));
+
+app.delete('/api/santa-tour/schedules/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM santa_tour_schedules WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
+// Location Tracking
+app.get('/api/santa-tour/location', (req, res) => {
+    // Current sleigh position (normally stored in memory or a file during live event)
+    const filePath = path.join(__dirname, 'santa_location.json');
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        // Default to Caterham
+        res.json({ lat: 51.280, lng: -0.080, timestamp: new Date() });
+    }
+});
+
+app.post('/api/santa-tour/location', (req, res) => {
+    const { lat, lng, secret } = req.body;
+    // Simple secret check for demo
+    if (secret !== process.env.SANTA_TRACK_SECRET && process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: "Unauthorized" });
+    }
+    const locationData = { lat, lng, timestamp: new Date() };
+    fs.writeFileSync(path.join(__dirname, 'santa_location.json'), JSON.stringify(locationData));
+    res.json({ message: "Position updated", data: locationData });
+});
+
+// --- EVENT ROSTERS API ---
+app.get('/api/event-rosters', asyncHandler(async (req, res) => {
+    const { event_key } = req.query;
+    let sql = "SELECT * FROM event_rosters";
+    let params = [];
+    if (event_key) {
+        sql += " WHERE event_key = ?";
+        params.push(event_key);
+    }
+    const { rows } = await db.query(sql, params);
+    res.json(rows);
+}));
+
+app.post('/api/event-rosters', asyncHandler(async (req, res) => {
+    const { event_key, title, date, location, slots, notes } = req.body;
+    const sql = "INSERT INTO event_rosters (event_key, title, date, location, slots, notes) VALUES (?,?,?,?,?,?)";
+    const params = [event_key, title, date || null, location || null, slots || null, notes || null];
+    const { lastID } = await db.query(sql, params);
+    res.json({ message: "success", id: lastID });
+}));
+
+app.put('/api/event-rosters/:id', asyncHandler(async (req, res) => {
+    const { title, date, location, slots, notes } = req.body;
+    const sql = "UPDATE event_rosters SET title=?, date=?, location=?, slots=?, notes=? WHERE id=?";
+    const params = [title, date || null, location || null, slots || null, notes || null, req.params.id];
+    const { changes } = await db.query(sql, params);
+    res.json({ message: "success", changes });
+}));
+
+app.delete('/api/event-rosters/:id', asyncHandler(async (req, res) => {
+    const { changes } = await db.query("DELETE FROM event_rosters WHERE id = ?", [req.params.id]);
+    res.json({ message: "deleted", changes });
+}));
+
 // --- RECEIPT SCANNER API ---
 
 app.get('/api/lists', asyncHandler(async (req, res) => {

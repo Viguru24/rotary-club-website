@@ -8,6 +8,48 @@ const INITIAL_CONFIG = {
     statsText: '50+ Active Members',
     heroImages: [
         // Default gradient/abstract background for fallback
+    ],
+    featuredEventPages: [
+        {
+            id: 'bunny-run',
+            title: 'Bunny Fun Run',
+            icon: '🐰',
+            path: '/events/bunny-run',
+            description: 'Annual charity fun run for all ages',
+            enabled: true
+        },
+        {
+            id: 'santa-tour',
+            title: 'Santa Tour',
+            icon: '🎅',
+            path: '/events/santa-tour',
+            description: "Santa's Magical Christmas Tour around Caterham",
+            enabled: true
+        },
+        {
+            id: 'knights-garden',
+            title: 'Knights Garden',
+            icon: '🎄',
+            path: '/events/knights-garden',
+            description: 'Christmas trees from Knights Garden',
+            enabled: true
+        },
+        {
+            id: 'breakfast',
+            title: 'Breakfast',
+            icon: '🥞',
+            path: '/events/breakfast',
+            description: 'Community breakfast events',
+            enabled: true
+        },
+        {
+            id: 'invoice',
+            title: 'Event Invoice',
+            icon: '🧾',
+            path: '/events/invoice',
+            description: 'Generate invoices for event sponsorships',
+            enabled: false
+        }
     ]
 };
 

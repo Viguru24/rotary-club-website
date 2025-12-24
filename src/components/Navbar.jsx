@@ -249,6 +249,7 @@ const Navbar = () => {
                                 >
                                     <Link
                                         to={link.path}
+                                        className="nav-link-item"
                                         style={{
                                             ...styles.navLink,
                                             color: location.pathname === link.path ? 'var(--accent-primary)' : 'var(--text-primary)'
@@ -374,6 +375,7 @@ const Navbar = () => {
                         style={{
                             position: 'fixed',
                             inset: 0,
+                            height: '100dvh', // Use dynamic viewport height
                             zIndex: 60,
                             background: 'rgba(255, 255, 255, 0.98)',
                             backdropFilter: 'blur(20px)',
@@ -381,7 +383,7 @@ const Navbar = () => {
                             flexDirection: 'column'
                         }}
                     >
-                        <div style={{ padding: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <div style={{ padding: '24px', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
                             <button
                                 onClick={() => setIsOpen(false)}
                                 style={{ background: 'none', border: 'none', fontSize: '2rem', color: 'var(--text-primary)', cursor: 'pointer' }}
@@ -390,13 +392,57 @@ const Navbar = () => {
                             </button>
                         </div>
 
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '32px', padding: '32px' }}>
+                        <div style={{
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'flex-start',
+                            gap: '24px',
+                            padding: '0 32px 80px 32px',
+                            overflowY: 'auto',
+                            WebkitOverflowScrolling: 'touch'
+                        }}>
+                            {/* Primary Actions at the TOP for Mobile */}
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', marginBottom: '10px' }}>
+                                {user ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <img src={user.picture} style={{ width: '48px', height: '48px', borderRadius: '50%', border: '2px solid var(--accent-primary)' }} />
+                                            <div style={{ textAlign: 'center' }}>
+                                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Welcome back,</p>
+                                                <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{user.given_name || user.name}</p>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '15px' }}>
+                                            <Link to="/members" onClick={() => setIsOpen(false)} style={{ color: 'var(--accent-primary)', fontWeight: 700, padding: '10px 20px', background: 'rgba(0, 91, 170, 0.1)', borderRadius: '12px', textDecoration: 'none' }}>Dashboard</Link>
+                                            <button onClick={() => { logout(); setIsOpen(false); }} style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', fontWeight: 600, padding: '10px 20px', borderRadius: '12px' }}>Sign Out</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Link to="/login" onClick={() => setIsOpen(false)} style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', background: 'var(--accent-primary)', width: '100%', textAlign: 'center', padding: '15px', borderRadius: '15px', textDecoration: 'none', boxShadow: '0 10px 20px -5px rgba(0, 91, 170, 0.3)' }}>
+                                        Sign In / Members Login
+                                    </Link>
+                                )}
+
+                                <Link
+                                    to="/join-us"
+                                    onClick={() => setIsOpen(false)}
+                                    style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'rgba(247, 168, 27, 0.05)', borderRadius: '12px', width: '100%', justifyContent: 'center' }}
+                                >
+                                    <FaHandshake /> Become a Member
+                                </Link>
+                            </div>
+
+                            <div style={{ width: '100%', height: '1px', background: 'rgba(0,0,0,0.05)', borderRadius: '4px' }}></div>
+
+                            {/* Standard Nav Links Below */}
                             {navLinks.map((link) => (
                                 <React.Fragment key={link.id || link.name}>
                                     <Link
                                         to={link.path}
                                         onClick={() => setIsOpen(false)}
-                                        style={{ fontSize: '1.5rem', fontWeight: 700, textDecoration: 'none', color: 'var(--text-primary)' }}
+                                        style={{ fontSize: '1.4rem', fontWeight: 600, textDecoration: 'none', color: 'var(--text-primary)' }}
                                     >
                                         {link.label || link.name}
                                     </Link>
@@ -408,10 +454,10 @@ const Navbar = () => {
                                             onClick={() => setIsOpen(false)}
                                             style={{
                                                 fontSize: '1.1rem',
-                                                fontWeight: 600,
+                                                fontWeight: 500,
                                                 textDecoration: 'none',
                                                 color: 'var(--text-secondary)',
-                                                marginTop: '-15px' // Pull closer to parent
+                                                marginTop: '-15px'
                                             }}
                                         >
                                             ↳ {child.name}
@@ -419,31 +465,6 @@ const Navbar = () => {
                                     ))}
                                 </React.Fragment>
                             ))}
-                            <div style={{ width: '64px', height: '2px', background: '#e5e7eb', borderRadius: '4px' }}></div>
-
-                            {user ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <img src={user.picture} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
-                                        <span style={{ fontSize: '1.2rem', fontWeight: 600 }}>{user.name}</span>
-                                    </div>
-                                    <Link to="/members" onClick={() => setIsOpen(false)} style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Dashboard</Link>
-                                    <button onClick={() => { logout(); setIsOpen(false); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600 }}>Sign Out</button>
-                                </div>
-                            ) : (
-                                <Link to="/login" onClick={() => setIsOpen(false)} style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-secondary)', background: 'none', border: 'none', textDecoration: 'none' }}>
-                                    Sign In
-                                </Link>
-                            )}
-
-                            <Link
-                                to="/join-us"
-                                onClick={() => setIsOpen(false)}
-                                style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
-                            >
-                                <FaHandshake /> Join Us
-                            </Link>
-
                         </div>
                     </motion.div>
                 )}

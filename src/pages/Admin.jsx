@@ -103,7 +103,7 @@ const AdminDashboard = () => {
     }
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', color: '#1f2937' }}>
+        <div style={{ maxWidth: '100%', margin: '0 auto', color: '#1f2937', paddingRight: '10px' }}>
 
             {/* Header / Welcome */}
             <motion.div
@@ -111,14 +111,14 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 style={{ marginBottom: '30px' }}
             >
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#111827', marginBottom: '5px' }}>
+                <h1 style={{ fontSize: 'clamp(1.25rem, 5vw, 1.75rem)', fontWeight: 800, color: '#111827', marginBottom: '5px' }}>
                     Welcome back, {user?.given_name || 'Rotarian'}!
                 </h1>
-                <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>Here's what's happening in your club today.</p>
+                <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Here's what's happening in your club today.</p>
             </motion.div>
 
             {/* Quick Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '30px' }}>
                 <StatsCard
                     title="Active Members"
                     value={stats.members}
@@ -143,7 +143,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Main Content Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '30px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
 
                 {/* 1. Latest Blog Post */}
                 <DashboardCard title="Latest News" icon={<FaNewspaper />} link="/admin/blog">
@@ -236,13 +236,13 @@ const AdminDashboard = () => {
 
 // Sub-components
 const StatsCard = ({ title, value, icon, color, link }) => (
-    <Link to={link} className="glass-card" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', textDecoration: 'none', color: 'inherit', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-        <div style={{ width: '50px', height: '50px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }} className={color}>
+    <Link to={link} className="glass-card" style={{ padding: 'clamp(15px, 4vw, 25px)', display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none', color: 'inherit', transition: 'transform 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+        <div style={{ width: '45px', height: '45px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }} className={color}>
             {icon}
         </div>
         <div>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280', fontWeight: 600 }}>{title}</p>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>{value}</h3>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#6b7280', fontWeight: 600 }}>{title}</p>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{value}</h3>
         </div>
     </Link>
 );
@@ -253,7 +253,7 @@ const DashboardCard = ({ title, icon, children, link }) => (
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         className="glass-card"
-        style={{ padding: '30px', display: 'flex', flexDirection: 'column', height: '100%' }}
+        style={{ padding: 'clamp(20px, 5vw, 30px)', display: 'flex', flexDirection: 'column', height: '100%' }}
     >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>

@@ -170,6 +170,100 @@ if (isProd) {
                 value TEXT
             )`);
 
+            // Bunny Run Registrations Table
+            await pool.query(`CREATE TABLE IF NOT EXISTS bunny_run_registrations (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                event_type TEXT NOT NULL,
+                age INTEGER,
+                postcode TEXT,
+                consent_fitness BOOLEAN DEFAULT false,
+                consent_photos BOOLEAN DEFAULT false,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Bunny Run Santa Bookings Table
+            await pool.query(`CREATE TABLE IF NOT EXISTS bunny_run_santa_bookings (
+                id SERIAL PRIMARY KEY,
+                parent_name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                child_name TEXT NOT NULL,
+                child_age INTEGER,
+                time_slot TEXT,
+                special_requests TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Bunny Run Breakfast Bookings Table
+            await pool.query(`CREATE TABLE IF NOT EXISTS bunny_run_breakfast_bookings (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                num_adults INTEGER DEFAULT 0,
+                num_children INTEGER DEFAULT 0,
+                dietary_requirements TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Bunny Run Invoices Table
+            await pool.query(`CREATE TABLE IF NOT EXISTS bunny_run_invoices (
+                id SERIAL PRIMARY KEY,
+                invoice_number TEXT UNIQUE,
+                company_name TEXT NOT NULL,
+                contact_name TEXT,
+                email TEXT,
+                phone TEXT,
+                amount REAL NOT NULL,
+                items TEXT,
+                description TEXT,
+                status TEXT DEFAULT 'pending',
+                due_date TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Event Rosters Table (For Knights Garden, Breakfast, etc.)
+            await pool.query(`CREATE TABLE IF NOT EXISTS event_rosters (
+                id SERIAL PRIMARY KEY,
+                event_key TEXT NOT NULL,
+                title TEXT,
+                date TEXT,
+                location TEXT,
+                slots TEXT,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Santa Tour Routes Table
+            await pool.query(`CREATE TABLE IF NOT EXISTS santa_tour_routes (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                area TEXT NOT NULL,
+                duration TEXT,
+                stops_count INTEGER DEFAULT 0,
+                notes TEXT,
+                map_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Santa Tour Schedules Table
+            await pool.query(`CREATE TABLE IF NOT EXISTS santa_tour_schedules (
+                id SERIAL PRIMARY KEY,
+                night_number INTEGER NOT NULL,
+                date DATE NOT NULL,
+                route_id INTEGER REFERENCES santa_tour_routes(id),
+                santa_member INTEGER,
+                driver_member INTEGER,
+                helper1_member INTEGER,
+                helper2_member INTEGER,
+                start_time TEXT DEFAULT '18:00',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
             // Seed Lists if empty
             const { rows: listRows } = await pool.query('SELECT count(*) FROM lists');
             if (parseInt(listRows[0].count) === 0) {
@@ -198,6 +292,37 @@ if (isProd) {
             if (parseInt(rows[0].count) === 0) {
                 console.log('Seeding Events (Postgres)...');
                 // ... Add explicit event seeding if needed later
+            }
+
+            // Seed Check Posts (Postgres)
+            const { rows: postRows } = await pool.query('SELECT count(*) FROM posts');
+            if (parseInt(postRows[0].count) === 0) {
+                console.log('Seeding Posts (Postgres)...');
+                for (const post of INITIAL_POSTS) {
+                    await pool.query(
+                        `INSERT INTO posts (title, date, author, category, readTime, image, content, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                        [post.title, post.date, post.author, post.category, post.readTime, post.image, post.content, post.status]
+                    );
+                }
+            }
+
+            // Seed Santa Tour Routes if empty
+            const { rows: routeRows } = await pool.query('SELECT count(*) FROM santa_tour_routes');
+            if (parseInt(routeRows[0].count) === 0) {
+                console.log('Seeding Santa Tour Routes...');
+                const defaultRoutes = [
+                    { name: 'Caterham Hill Route', area: 'Caterham on the Hill', duration: '2 hours', stops_count: 15, notes: 'Start at Queens Park, cover residential streets around the hill area' },
+                    { name: 'Valley Route', area: 'Caterham Valley', duration: '2.5 hours', stops_count: 20, notes: 'Main shopping area and surrounding residential streets' },
+                    { name: 'Chaldon Route', area: 'Chaldon', duration: '1.5 hours', stops_count: 10, notes: 'Rural route covering Chaldon village and surrounding areas' },
+                    { name: 'Whyteleafe Route', area: 'Whyteleafe', duration: '2 hours', stops_count: 18, notes: 'Covers Whyteleafe and surrounding neighborhoods' },
+                    { name: 'Warlingham Route', area: 'Warlingham', duration: '2 hours', stops_count: 16, notes: 'Warlingham village and residential areas' }
+                ];
+                for (const route of defaultRoutes) {
+                    await pool.query(
+                        'INSERT INTO santa_tour_routes (name, area, duration, stops_count, notes) VALUES ($1, $2, $3, $4, $5)',
+                        [route.name, route.area, route.duration, route.stops_count, route.notes]
+                    );
+                }
             }
 
             console.log('Postgres Schema Synced.');
@@ -310,6 +435,101 @@ if (isProd) {
                 value TEXT
             )`);
 
+            // Bunny Run Registrations
+            db.run(`CREATE TABLE IF NOT EXISTS bunny_run_registrations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                event_type TEXT NOT NULL,
+                age INTEGER,
+                postcode TEXT,
+                consent_fitness INTEGER DEFAULT 0,
+                consent_photos INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Bunny Run Santa Bookings
+            db.run(`CREATE TABLE IF NOT EXISTS bunny_run_santa_bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                parent_name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                child_name TEXT NOT NULL,
+                child_age INTEGER,
+                time_slot TEXT,
+                special_requests TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Bunny Run Breakfast Bookings
+            db.run(`CREATE TABLE IF NOT EXISTS bunny_run_breakfast_bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT,
+                num_adults INTEGER DEFAULT 0,
+                num_children INTEGER DEFAULT 0,
+                dietary_requirements TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Bunny Run Invoices
+            db.run(`CREATE TABLE IF NOT EXISTS bunny_run_invoices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                invoice_number TEXT UNIQUE,
+                company_name TEXT NOT NULL,
+                contact_name TEXT,
+                email TEXT,
+                phone TEXT,
+                amount REAL NOT NULL,
+                items TEXT,
+                description TEXT,
+                status TEXT DEFAULT 'pending',
+                due_date TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Event Rosters
+            db.run(`CREATE TABLE IF NOT EXISTS event_rosters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_key TEXT NOT NULL,
+                title TEXT,
+                date TEXT,
+                location TEXT,
+                slots TEXT,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Santa Tour Routes
+            db.run(`CREATE TABLE IF NOT EXISTS santa_tour_routes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                area TEXT NOT NULL,
+                duration TEXT,
+                stops_count INTEGER DEFAULT 0,
+                notes TEXT,
+                map_data TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // Santa Tour Schedules
+            db.run(`CREATE TABLE IF NOT EXISTS santa_tour_schedules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                night_number INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                route_id INTEGER,
+                santa_member INTEGER,
+                driver_member INTEGER,
+                helper1_member INTEGER,
+                helper2_member INTEGER,
+                start_time TEXT DEFAULT '18:00',
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (route_id) REFERENCES santa_tour_routes(id)
+            )`);
+
             // Seed Lists if empty
             db.get("SELECT count(*) as count FROM lists", [], (err, row) => {
                 if (!err && row && row.count === 0) {
@@ -340,6 +560,22 @@ if (isProd) {
                     INITIAL_POSTS.forEach(post => {
                         stmt.run(post.title, post.date, post.author, post.category, post.readTime, post.image, post.content, post.status);
                     });
+                    stmt.finalize();
+                }
+            });
+
+            // Seed Santa Tour Routes if empty
+            db.get("SELECT count(*) as count FROM santa_tour_routes", [], (err, row) => {
+                if (!err && row && row.count === 0) {
+                    const stmt = db.prepare("INSERT INTO santa_tour_routes (name, area, duration, stops_count, notes) VALUES (?, ?, ?, ?, ?)");
+                    const defaultRoutes = [
+                        { name: 'Caterham Hill Route', area: 'Caterham on the Hill', duration: '2 hours', stops_count: 15, notes: 'Start at Queens Park, cover residential streets around the hill area' },
+                        { name: 'Valley Route', area: 'Caterham Valley', duration: '2.5 hours', stops_count: 20, notes: 'Main shopping area and surrounding residential streets' },
+                        { name: 'Chaldon Route', area: 'Chaldon', duration: '1.5 hours', stops_count: 10, notes: 'Rural route covering Chaldon village and surrounding areas' },
+                        { name: 'Whyteleafe Route', area: 'Whyteleafe', duration: '2 hours', stops_count: 18, notes: 'Covers Whyteleafe and surrounding neighborhoods' },
+                        { name: 'Warlingham Route', area: 'Warlingham', duration: '2 hours', stops_count: 16, notes: 'Warlingham village and residential areas' }
+                    ];
+                    defaultRoutes.forEach(route => stmt.run(route.name, route.area, route.duration, route.stops_count, route.notes));
                     stmt.finalize();
                 }
             });

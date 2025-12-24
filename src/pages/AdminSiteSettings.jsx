@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, Reorder } from 'framer-motion';
 import { getHomeConfig, saveHomeConfig } from '../services/homeService';
-import { getNavLinks, saveNavLinks, addNavLink, deleteNavLink } from '../services/navigationService';
+import { getAllNavLinks, saveNavLinks, addNavLink, deleteNavLink, toggleNavLink } from '../services/navigationService';
 import { getMembers, saveMember } from '../services/memberService'; // Use Mock Service
-import { FaSave, FaPlus, FaTrash, FaGripLines, FaImage, FaUpload, FaArrowRight, FaPen, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaSave, FaPlus, FaTrash, FaGripLines, FaImage, FaUpload, FaArrowRight, FaPen, FaCheck, FaTimes, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useUI } from '../context/UIContext';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -12,7 +12,7 @@ const AdminSiteSettings = () => {
     const { showToast, confirmAction } = useUI();
     const [activeTab, setActiveTab] = useState('home');
     const [homeConfig, setHomeConfig] = useState(getHomeConfig());
-    const [navLinks, setNavLinks] = useState(getNavLinks());
+    const [navLinks, setNavLinks] = useState(getAllNavLinks());
     const [newLink, setNewLink] = useState({ name: '', path: '' });
     const [lists, setLists] = useState({ role: [], strength: [], event_category: [], event_location: [] });
     const [members, setMembers] = useState([]);
@@ -20,7 +20,7 @@ const AdminSiteSettings = () => {
 
     useEffect(() => {
         setHomeConfig(getHomeConfig());
-        setNavLinks(getNavLinks());
+        setNavLinks(getAllNavLinks());
         fetchMembers();
         fetchLists();
     }, []);
@@ -161,7 +161,7 @@ const AdminSiteSettings = () => {
     const handleAddLink = () => {
         if (newLink.name && newLink.path) {
             addNavLink(newLink);
-            setNavLinks(getNavLinks()); // Refresh list
+            setNavLinks(getAllNavLinks()); // Refresh list
             setNewLink({ name: '', path: '' });
         }
     };
@@ -169,9 +169,15 @@ const AdminSiteSettings = () => {
     const handleDeleteLink = (id) => {
         confirmAction('Delete this navigation link?', () => {
             deleteNavLink(id);
-            setNavLinks(getNavLinks());
+            setNavLinks(getAllNavLinks());
             showToast('Link deleted', 'success');
         }, 'Delete Helper', true);
+    };
+
+    const handleToggleLink = (id, isChild = false, parentId = null) => {
+        toggleNavLink(id, isChild, parentId);
+        setNavLinks(getAllNavLinks());
+        showToast('Menu item visibility updated', 'success');
     };
 
     const handleIndent = (index) => {
@@ -198,7 +204,7 @@ const AdminSiteSettings = () => {
     };
 
     // Helper component for editable row
-    const EditableRow = ({ item, onDelete, onIndent, onPromote, onSave, canIndent }) => {
+    const EditableRow = ({ item, onDelete, onIndent, onPromote, onSave, onToggle, canIndent }) => {
         const [isEditing, setIsEditing] = useState(false);
         const [editData, setEditData] = useState({ name: item.name, path: item.path });
 
@@ -241,24 +247,40 @@ const AdminSiteSettings = () => {
             );
         }
 
+        const isDisabled = item.enabled === false;
+
         return (
             <div style={{
                 background: canIndent ? 'white' : '#f9fafb',
                 padding: canIndent ? '15px 20px' : '10px 15px',
                 borderRadius: '8px',
-                border: '1px solid #e5e7eb',
+                border: `1px solid ${isDisabled ? '#fca5a5' : '#e5e7eb'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 boxShadow: canIndent ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                cursor: 'grab'
+                cursor: 'grab',
+                opacity: isDisabled ? 0.6 : 1
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <FaGripLines style={{ color: '#9ca3af', fontSize: canIndent ? '1rem' : '0.8rem' }} />
                     <div>
-                        <div style={{ fontWeight: 600, color: '#1f2937', fontSize: canIndent ? '1rem' : '0.9rem' }}>{item.name}</div>
+                        <div style={{ fontWeight: 600, color: '#1f2937', fontSize: canIndent ? '1rem' : '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {item.name}
+                            {isDisabled && <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 500 }}>(Hidden)</span>}
+                        </div>
                         <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{item.path}</div>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {onToggle && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                            style={{ color: isDisabled ? '#9ca3af' : '#10b981', background: 'none', border: 'none', cursor: 'pointer', padding: '5px' }}
+                            title={isDisabled ? 'Show in menu' : 'Hide from menu'}
+                        >
+                            {isDisabled ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                        </button>
+                    )}
+
                     {canIndent && onIndent && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onIndent(); }}
@@ -337,6 +359,7 @@ const AdminSiteSettings = () => {
                     onIndent={onIndent}
                     onDelete={onDelete}
                     onSave={(newData) => onUpdate({ ...link, ...newData })}
+                    onToggle={() => handleToggleLink(link.id)}
                 />
 
                 {/* Render Children */}
@@ -351,6 +374,7 @@ const AdminSiteSettings = () => {
                                         onDelete={() => deleteChild(child.id)}
                                         onSave={(newData) => updateChild(cIdx, newData)}
                                         onPromote={() => promoteChild(cIdx)}
+                                        onToggle={() => handleToggleLink(child.id, true, link.id)}
                                     />
                                 </Reorder.Item>
                             ))}

@@ -113,7 +113,7 @@ const JoinUsContent = () => {
             {/* CONTACT / APPLICATION FORM */}
             <div style={{ background: '#005baa', padding: '80px 0', color: 'white' }}>
                 <div style={containerStyle}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '60px', alignItems: 'center' }}>
 
                         {/* Left Side: Text */}
                         <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>

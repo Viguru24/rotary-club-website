@@ -13,7 +13,7 @@ RUN npm install
 # Copy local code to the container image.
 COPY . .
 
-# Build the application.
+# Build the application (Vite will read .env.production automatically)
 RUN npm run build
 
 # Run the web service on container startup.

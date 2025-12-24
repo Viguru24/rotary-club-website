@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <HelmetProvider>
       <GoogleOAuthProvider clientId={clientId}>
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <App />
           </BrowserRouter>
         </AuthProvider>

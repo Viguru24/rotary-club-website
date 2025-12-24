@@ -1,98 +1,147 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { getBlogPosts } from '../services/blogService';
-import { FaCalendar, FaTag, FaClock, FaArrowRight } from 'react-icons/fa';
-
+import { FaArrowRight, FaCalendarAlt, FaClock } from 'react-icons/fa';
 
 const BlogPage = () => {
     const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchPosts = async () => {
-            const data = await getBlogPosts('published');
-            setPosts(data);
+            try {
+                const data = await getBlogPosts('published');
+                setPosts(data);
+            } catch (error) {
+                console.error("Failed to fetch posts:", error);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchPosts();
-
-        const handleUpdate = () => fetchPosts();
-        window.addEventListener('blog-updated', handleUpdate);
-        return () => window.removeEventListener('blog-updated', handleUpdate);
     }, []);
 
-    // Helper to strip HTML for summary
-    const getSummary = (html) => {
+    const getSummary = (html, length = 160) => {
         const tmp = document.createElement("DIV");
         tmp.innerHTML = html;
         let text = tmp.textContent || tmp.innerText || "";
-        return text.substring(0, 150) + "...";
+        return text.substring(0, length).trim() + (text.length > length ? "..." : "");
     };
 
+    const handleImageError = (e) => {
+        e.target.src = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1000'; // Reliable fallback
+    };
+
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-white pt-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        </div>
+    );
+
+    const featuredPost = posts[0];
+    const otherPosts = posts.slice(1);
+
     return (
-        <div className="container section-padding" style={{ paddingTop: 'calc(var(--nav-height) + 40px)', minHeight: '100vh' }}>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                style={{ textAlign: 'center', marginBottom: '80px' }}
-            >
-                <h1 className="text-gradient" style={{ fontSize: '4rem', marginBottom: '20px', letterSpacing: '-0.02em' }}>Our Stories</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '1.25rem', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6, marginBottom: '30px' }}>
-                    Discover the latest news, events, and community impact from Caterham Rotary.
-                </p>
-                <Link to="/submit-story" className="fancy-button" style={{ display: 'inline-flex', padding: '12px 30px', fontWeight: 600, fontSize: '1.1rem', borderRadius: '50px', textDecoration: 'none' }}>
-                    Share Your Story
-                </Link>
-            </motion.div>
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 pt-32 sm:pt-40">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '40px' }}>
-                {posts.map((post, index) => (
-                    <motion.article
-                        key={post.id}
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: index * 0.1 }}
-                        className="glass-card"
-                        style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', padding: 0 }}
-                    >
-                        {/* Image Cap */}
-                        <div style={{ height: '240px', overflow: 'hidden', position: 'relative' }}>
-                            <img
-                                src={post.image || 'https://images.unsplash.com/photo-1590053707323-2895c112527f'}
-                                alt={post.title}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            />
-                            <div style={{ position: 'absolute', top: 20, right: 20, background: 'rgba(255,255,255,0.9)', padding: '6px 14px', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-primary)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                                {post.category || 'General'}
-                            </div>
+                {/* Header */}
+                <header className="mb-16 text-center max-w-3xl mx-auto">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 mb-4 pb-2 leading-tight">
+                        Caterham <span className="text-indigo-600">Magazine</span>
+                    </h1>
+                    <p className="text-lg text-slate-600">
+                        Stories of community, service, and impact.
+                    </p>
+                </header>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+                    {/* Main Feed */}
+                    <div className="lg:col-span-8">
+
+                        {/* Featured Post */}
+                        {featuredPost && (
+                            <Link to={`/blog/${featuredPost.id}`} className="group block mb-12">
+                                <article className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                                    <div className="aspect-video w-full overflow-hidden bg-slate-100 relative">
+                                        <img
+                                            src={featuredPost.image || ''}
+                                            alt={featuredPost.title}
+                                            onError={handleImageError}
+                                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                        />
+                                    </div>
+                                    <div className="p-6 sm:p-8 space-y-4">
+                                        <div className="flex items-center gap-3 text-sm font-bold tracking-wide text-indigo-600 uppercase">
+                                            {featuredPost.category}
+                                        </div>
+                                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                            {featuredPost.title}
+                                        </h2>
+                                        <p className="text-slate-600 leading-relaxed text-base sm:text-lg line-clamp-3">
+                                            {getSummary(featuredPost.content, 200)}
+                                        </p>
+                                        <div className="flex items-center gap-4 text-sm text-slate-400 font-medium pt-2 border-t border-slate-100 mt-4">
+                                            <span className="flex items-center gap-2"><FaCalendarAlt /> {featuredPost.date}</span>
+                                            <span>&middot;</span>
+                                            <span className="flex items-center gap-2"><FaClock /> {featuredPost.readTime || '5 min read'}</span>
+                                        </div>
+                                    </div>
+                                </article>
+                            </Link>
+                        )}
+
+                        {/* Post List */}
+                        <div className="space-y-8">
+                            {otherPosts.map((post) => (
+                                <Link key={post.id} to={`/blog/${post.id}`} className="group block">
+                                    <article className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex flex-col sm:flex-row">
+                                        <div className="sm:w-1/3 aspect-video sm:aspect-auto bg-slate-100 relative">
+                                            <img
+                                                src={post.image || ''}
+                                                alt={post.title}
+                                                onError={handleImageError}
+                                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                        </div>
+                                        <div className="p-6 sm:w-2/3 flex flex-col justify-center">
+                                            <div className="text-xs font-bold tracking-wide text-indigo-600 uppercase mb-2">
+                                                {post.category}
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mb-3">
+                                                {post.title}
+                                            </h3>
+                                            <p className="text-slate-600 text-sm leading-relaxed line-clamp-2 mb-4">
+                                                {getSummary(post.content, 120)}
+                                            </p>
+                                            <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
+                                                <span>{post.date}</span>
+                                                <span>&middot;</span>
+                                                <span>{post.readTime || '3 min'}</span>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </Link>
+                            ))}
                         </div>
+                    </div>
 
-                        {/* Content */}
-                        <div style={{ padding: '30px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                            <div style={{ display: 'flex', gap: '15px', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '15px' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FaCalendar /> {post.date}</span>
-                                {post.readTime && <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FaClock /> {post.readTime}</span>}
-                            </div>
-
-                            <h2 style={{ fontSize: '1.5rem', marginBottom: '15px', color: 'var(--text-primary)', lineHeight: 1.3, fontWeight: 700 }}>
-                                {post.title}
-                            </h2>
-
-                            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '1rem', marginBottom: '25px', flex: 1 }}>
-                                {getSummary(post.content)}
+                    {/* Sidebar */}
+                    <aside className="lg:col-span-4 space-y-8">
+                        {/* About Widget */}
+                        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                            <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 mb-4 border-b border-slate-100 pb-2">About Us</h4>
+                            <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                                The Rotary Club of Caterham Harestone is dedicated to community service, bringing people together to create positive change.
                             </p>
-
-                            <Link to={`/blog/${post.id}`} style={{
-                                background: 'transparent', border: 'none', color: 'var(--accent-primary)',
-                                fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: 0, textDecoration: 'none'
-                            }}>
-                                Read Full Story <FaArrowRight size={14} />
+                            <Link to="/about" className="text-indigo-600 text-sm font-semibold hover:underline inline-flex items-center gap-1">
+                                More about us <FaArrowRight size={12} />
                             </Link>
                         </div>
-                    </motion.article>
-                ))}
+                    </aside>
+
+                </div>
             </div>
         </div>
     );

@@ -17,6 +17,18 @@ export const getBlogPosts = async (status) => {
     }
 };
 
+export const getBlogPost = async (id) => {
+    try {
+        const res = await fetch(`${API_URL}/${id}`);
+        if (!res.ok) throw new Error('Failed to fetch blog post');
+        const json = await res.json();
+        return json.data || json; // Handle generic response or direct object
+    } catch (error) {
+        console.error("API Error (Blog Post):", error);
+        throw error;
+    }
+};
+
 export const saveBlogPost = async (post) => {
     const url = post.id ? `${API_URL}/${post.id}` : API_URL;
     const method = post.id ? 'PUT' : 'POST';

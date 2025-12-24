@@ -14,8 +14,8 @@ const QuickLinks = () => {
     ];
 
     return (
-        <section className="container" style={{ marginTop: '-50px', position: 'relative', zIndex: 10, marginBottom: '80px' }}>
-            <div style={{
+        <section className="container home-cards-container mx-auto" style={{ position: 'relative', zIndex: 10, marginBottom: '80px', marginLeft: 'auto', marginRight: 'auto' }}>
+            <div className="home-cards-grid" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '20px',
@@ -87,14 +87,13 @@ const Hero = () => {
     }, [config.heroImages]);
 
     return (
-        <section style={{
+        <section className="hero-section" style={{
             minHeight: '90vh',
-            paddingBottom: '120px', // Added padding to prevent overlap with QuickLinks
             display: 'flex',
             alignItems: 'center',
             position: 'relative',
             overflow: 'hidden',
-            paddingTop: 'var(--nav-height)'
+            paddingTop: 'calc(var(--nav-height) + 40px)'
         }}>
             {/* BACKGROUND: Image Carousel or Default Ambience */}
             {config.heroImages && config.heroImages.length > 0 ? (
@@ -139,8 +138,8 @@ const Hero = () => {
                 </>
             )}
 
-            <div className="container" style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '50px' }}>
-                <div style={{ flex: 1 }}>
+            <div className="container hero-container mx-auto" style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '50px', marginLeft: 'auto', marginRight: 'auto' }}>
+                <div className="hero-content" style={{ flex: 1 }}>
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -264,6 +263,9 @@ const NewsCard = ({ title, category, content, date }) => (
 import SEO from '../components/SEO';
 
 const Home = () => {
+    const config = getHomeConfig();
+    const enabledEvents = config.featuredEventPages?.filter(event => event.enabled) || [];
+
     // Strategy 1: LocalBusiness/NGO Schema
     const localBusinessSchema = {
         "@context": "https://schema.org",
@@ -294,40 +296,67 @@ const Home = () => {
             <Hero />
             <QuickLinks />
 
-            <section id="latest-news" className="section-padding container">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    style={{ marginBottom: '60px', textAlign: 'center' }}
-                >
-                    <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Updates & Events</span>
-                    <h2 style={{ fontSize: '3rem', marginTop: '10px' }}>What's Happening</h2>
-                </motion.div>
+            {enabledEvents.length > 0 && (
+                <section id="featured-events" className="section-padding container mx-auto" style={{ marginLeft: 'auto', marginRight: 'auto' }}>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        style={{ marginBottom: '60px', textAlign: 'center' }}
+                    >
+                        <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>Our Events</span>
+                        <h2 style={{ fontSize: '3rem', marginTop: '10px' }}>Get Involved</h2>
+                    </motion.div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '40px' }}>
-                    <NewsCard
-                        category="Event Highlight"
-                        title="The Santa Magical Christmas Tour"
-                        content="It’s that time of the year folks! Caterham Rotary bringing you good cheer and happiness. Check our Santa Sleigh schedule for the 10 nights in December. Follow Santa's journey live every night at 6.00pm."
-                        date="Dec 2024"
-                    />
-
-                    <NewsCard
-                        category="Charity Drive"
-                        title="Support British Heart Foundation"
-                        content="Join the Rotary Club of Caterham in our collection drive. Every item you donate helps turn things you no longer need into funds for groundbreaking research into heart and circulatory diseases."
-                        date="Current Campaign"
-                    />
-
-                    <NewsCard
-                        category="Community"
-                        title="Weekly Meetings"
-                        content="We meet regularly to plan our community projects and enjoy fellowship. Interested in joining us? Come along to one of our meetings to learn more about what we do."
-                        date="Weekly"
-                    />
-                </div>
-            </section>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px' }}>
+                        {enabledEvents.map((event) => (
+                            <Link
+                                key={event.id}
+                                to={event.path}
+                                style={{ textDecoration: 'none' }}
+                            >
+                                <motion.div
+                                    whileHover={{ y: -10 }}
+                                    className="glass-card"
+                                    style={{
+                                        padding: '40px 30px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        textAlign: 'center',
+                                        height: '100%',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <div style={{
+                                        fontSize: '4rem',
+                                        marginBottom: '20px',
+                                        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                                    }}>
+                                        {event.icon}
+                                    </div>
+                                    <h3 style={{
+                                        fontSize: '1.5rem',
+                                        fontWeight: 700,
+                                        marginBottom: '15px',
+                                        color: 'var(--text-primary)'
+                                    }}>
+                                        {event.title}
+                                    </h3>
+                                    <p style={{
+                                        color: 'var(--text-secondary)',
+                                        lineHeight: 1.6,
+                                        fontSize: '1rem'
+                                    }}>
+                                        {event.description}
+                                    </p>
+                                </motion.div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
         </div>
     );
 };

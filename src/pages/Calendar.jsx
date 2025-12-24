@@ -56,27 +56,31 @@ const Calendar = () => {
                 description="View upcoming Rotary events, fundraisers, and meetings in Caterham. Join us to support the community."
                 canonical="/events"
             />
-            <div className="container section-padding" style={{ paddingTop: 'calc(var(--nav-height) + 40px)' }}>
+            <div className="container section-padding calendar-container" style={{ paddingTop: 'calc(var(--nav-height) + 40px)' }}>
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h1 className="text-gradient" style={{ fontSize: '3rem' }}>Club Calendar</h1>
+                    <h1 className="text-gradient calendar-page-title" style={{ fontSize: 'clamp(2rem, 8vw, 3rem)' }}>Club Calendar</h1>
                 </motion.div>
 
                 {/* Main Layout Grid */}
-                <div style={{
+                <div className="calendar-layout-grid" style={{
                     display: 'flex',
-                    gap: '40px',
+                    gap: '30px',
                     alignItems: 'start',
-                    flexWrap: 'wrap'
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
+                    maxWidth: '100%', // Allow full width
+                    margin: '0 auto',
+                    padding: '0 20px' // Ensure outer padding
                 }}>
-                    {/* Left Column: Calendar */}
-                    <div style={{ flex: '1 1 600px', minWidth: '0' }}> {/* minWidth 0 prevents flex child from overflowing */}
-                        <div className="glass-panel" style={{ padding: '30px', borderRadius: '25px', background: 'rgba(255,255,255,0.7)' }}>
+                    {/* Left Column: Calendar - Expanded */}
+                    <div className="calendar-main-col" style={{ flex: '3 1 700px', minWidth: '0' }}> {/* Increased width priority */}
+                        <div className="glass-panel calendar-glass" style={{ padding: 'clamp(20px, 5vw, 40px)', borderRadius: '25px', background: 'rgba(255,255,255,0.7)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', padding: '0 10px' }}>
-                                <button onClick={() => changeMonth(-1)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-primary)', padding: '10px', borderRadius: '50%', background: 'rgba(0,0,0,0.05)' }}><FaChevronLeft /></button>
+                                <button onClick={() => changeMonth(-1)} style={{ border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-primary)', padding: '10px', borderRadius: '50%', background: 'rgba(0,0,0,0.05)' }}><FaChevronLeft /></button>
                                 <h2 style={{ fontSize: '1.8rem', margin: 0, textAlign: 'center', fontWeight: 700 }}>
                                     {monthNames[currentDate.getMonth()]} <span style={{ color: 'var(--accent-primary)' }}>{currentDate.getFullYear()}</span>
                                 </h2>
-                                <button onClick={() => changeMonth(1)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-primary)', padding: '10px', borderRadius: '50%', background: 'rgba(0,0,0,0.05)' }}><FaChevronRight /></button>
+                                <button onClick={() => changeMonth(1)} style={{ border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-primary)', padding: '10px', borderRadius: '50%', background: 'rgba(0,0,0,0.05)' }}><FaChevronRight /></button>
                             </div>
 
                             {/* Days Header */}
@@ -95,7 +99,7 @@ const Calendar = () => {
 
                                     return (
                                         <div key={day} style={{
-                                            minHeight: '110px',
+                                            minHeight: 'clamp(80px, 15vw, 110px)',
                                             background: isToday ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)',
                                             borderRadius: '16px',
                                             padding: '12px',
@@ -137,8 +141,8 @@ const Calendar = () => {
                         </div>
                     </div>
 
-                    {/* Right Column: Sidebar Widget */}
-                    <div style={{ minWidth: '350px' }}>
+                    {/* Right Column: Sidebar Widget - Compact */}
+                    <div className="calendar-sidebar-col" style={{ flex: '1 1 300px' }}>
                         <div className="glass-panel" style={{ padding: '25px', borderRadius: '25px', background: 'white' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
                                 <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0 }}>Upcoming Events</h3>
