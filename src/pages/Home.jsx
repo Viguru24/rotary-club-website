@@ -271,7 +271,7 @@ const Home = () => {
         "@context": "https://schema.org",
         "@type": "NGO",
         "name": "Rotary Club of Caterham",
-        "url": "https://caterham-rotary-vvo7el47tq-uc.a.run.app",
+        "url": "https://caterham-rotary-lz5e6kxamq-nw.a.run.app",
         "logo": "https://www.rotary.org/sites/all/themes/rotary_rotaryorg/images/rotary-logo-color-2019-simplified.svg",
         "sameAs": [
             "https://www.facebook.com/CaterhamRotary",
